@@ -2,28 +2,66 @@
     "development_board": "bluepill",
     "features": {
         "bootmagic": true,
-        "console": true,
+        "console": false,
         "extrakey": true,
         "mousekey": true,
         "nkro": true,
-        "rgblight": true
+        "rgb_matrix": true
     },
     "matrix_pins": {
         "cols": ["A7", "A6", "A5", "A4", "B4"],
         "rows": ["B15", "A8", "A9", "A10", "A15", "B3"]
     },
-    "rgblight": {
-        "led_count": 6
+    "rgb_matrix": {
+        "driver": "ws2812",
+        "sleep": true,
         "animations": {
             "breathing": true,
-            "knight": true,
-            "rainbow_mood": true,
-            "rainbow_swirl": true,
-            "twinkle": true
-        }
+            "cycle_all": true,
+            "cycle_left_right": true,
+            "cycle_spiral": true,
+            "hue_pendulum": true,
+            "hue_wave": true,
+            "jellybean_raindrops": true,
+            "rainbow_moving_chevron": true
+        },
+        "layout": [
+            {"x": 0,   "y": 32, "flags": 2},
+            {"x": 7,   "y": 32, "flags": 2},
+            {"x": 14,  "y": 32, "flags": 2},
+            {"x": 22,  "y": 32, "flags": 2},
+            {"x": 29,  "y": 32, "flags": 2},
+            {"x": 36,  "y": 32, "flags": 2},
+            {"x": 43,  "y": 32, "flags": 2},
+            {"x": 51,  "y": 32, "flags": 2},
+            {"x": 58,  "y": 32, "flags": 2},
+            {"x": 65,  "y": 32, "flags": 2},
+            {"x": 72,  "y": 32, "flags": 2},
+            {"x": 79,  "y": 32, "flags": 2},
+            {"x": 87,  "y": 32, "flags": 2},
+            {"x": 94,  "y": 32, "flags": 2},
+            {"x": 101, "y": 32, "flags": 2},
+            {"x": 108, "y": 32, "flags": 2},
+            {"x": 116, "y": 32, "flags": 2},
+            {"x": 123, "y": 32, "flags": 2},
+            {"x": 130, "y": 32, "flags": 2},
+            {"x": 137, "y": 32, "flags": 2},
+            {"x": 145, "y": 32, "flags": 2},
+            {"x": 152, "y": 32, "flags": 2},
+            {"x": 159, "y": 32, "flags": 2},
+            {"x": 166, "y": 32, "flags": 2},
+            {"x": 173, "y": 32, "flags": 2},
+            {"x": 181, "y": 32, "flags": 2},
+            {"x": 188, "y": 32, "flags": 2},
+            {"x": 195, "y": 32, "flags": 2},
+            {"x": 202, "y": 32, "flags": 2},
+            {"x": 210, "y": 32, "flags": 2},
+            {"x": 217, "y": 32, "flags": 2},
+            {"x": 224, "y": 32, "flags": 2}
+        ]
     },
     "usb": {
-        "device_version": "0.0.2"
+        "device_version": "0.2.0"
     },
     "ws2812": {
         "pin": "B14"

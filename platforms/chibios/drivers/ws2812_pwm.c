@@ -37,6 +37,9 @@
 #ifndef WS2812_PWM_DMA_CHANNEL
 #    define WS2812_PWM_DMA_CHANNEL 2 // DMA Channel for TIMx_UP
 #endif
+#ifndef WS2812_PWM_DMA_REQUEST
+#    define WS2812_PWM_DMA_REQUEST TIM_DIER_UDE // DMA request for each PWM period
+#endif
 #if (STM32_DMA_SUPPORTS_DMAMUX == TRUE) && !defined(WS2812_PWM_DMAMUX_ID)
 #    error "please consult your MCU's datasheet and specify in your config.h: #define WS2812_PWM_DMAMUX_ID STM32_DMAMUX1_TIM?_UP"
 #endif
@@ -319,13 +322,16 @@ void ws2812_init(void) {
             {
                 [0 ... 3]                = {.mode = PWM_OUTPUT_DISABLED, .callback = NULL},    // Channels default to disabled
                 [WS2812_PWM_CHANNEL - 1] = {.mode = WS2812_PWM_OUTPUT_MODE, .callback = NULL}, // Turn on the channel we care about
+#ifdef WS2812_PWM_AUXILIARY_CHANNEL
+                [WS2812_PWM_AUXILIARY_CHANNEL - 1] = {.mode = WS2812_PWM_AUXILIARY_OUTPUT_MODE, .callback = NULL},
+#endif
             },
 #if defined(AT32F415)
         .ctrl2 = 0,
         .iden  = AT32_TMR_IDEN_OVFDEN, // DMA on update event for next period
 #else
         .cr2  = 0,
-        .dier = TIM_DIER_UDE, // DMA on update event for next period
+        .dier = WS2812_PWM_DMA_REQUEST,
 #endif
     };
     //#pragma GCC diagnostic pop  // Restore command-line warning options

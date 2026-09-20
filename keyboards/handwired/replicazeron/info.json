@@ -1,9 +1,9 @@
 {
-    "manufacturer": "9R",
+    "manufacturer": "9R/Incedius/Qwuille",
     "keyboard_name": "Replicazeron",
-    "maintainer": "9R",
+    "maintainer": "Qwuille",
     "diode_direction": "COL2ROW",
-    "url": "https://github.com/9R/replicazeron",
+    "url": "https://github.com/qwuille/vial-qmk/tree/replicazeron/keyboards/handwired/replicazeron",
     "usb": {
         "pid": "0x2305",
         "vid": "0x4142"

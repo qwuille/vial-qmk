@@ -16,12 +16,29 @@
 
 #include "state.h"
 
-controller_state_t init_state (void) {
-    controller_state_t  controller_state = {
-        .wasdMode = true,
+controller_state_t init_state(void) {
+    controller_state_t controller_state = {
+        .wasdMode = false,
         .wasdShiftMode = false,
         .autoRun = false,
         .highestActiveLayer = 0,
+        .menuState = MENU_NONE,
+        .menuSelection = 0,
+        .activeLayout = LAYOUT_1,
+        .layoutSelection = LAYOUT_1,
+        .layoutModes = {JOYSTICK_MODE_ANALOG},
+        .rgbAnimationSelection = RGB_ANIMATION_BREATHING,
+        .rgbStaticSelected = false,
+        .openrgbEnabled = false,
+        .sideLedsEnabled = true,
+        .sideLedsActiveLow = true,
+        .sideLedBrightness = UINT8_MAX,
+        .sideLedSourceA = SIDE_LED_SOURCE_STICK,
+        .sideLedSourceB = SIDE_LED_SOURCE_BUTTONS,
+        .rgbLedCount = REPLICAZERON_RGB_LED_COUNT_DEFAULT,
+        .deadzone = _DEADZONE,
+        .filterStrength = _FILTER_STRENGTH,
+        .filterCandidate = _FILTER_STRENGTH,
     };
 
     return controller_state;

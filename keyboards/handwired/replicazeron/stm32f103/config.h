@@ -24,6 +24,19 @@
 #define STATUS_LED_A_PIN B13
 #define STATUS_LED_B_PIN B12
 
+/*
+ * PB14 is TIM1_CH2N. Drive the WS2812 chain from TIM1 update DMA instead
+ * of timing-sensitive bit-banging. The two side LEDs use independent GPIO
+ * software PWM so their settings cannot conflict with the strip timer.
+ */
+#define WS2812_PWM_DRIVER PWMD1
+#define WS2812_PWM_CHANNEL 2
+#define WS2812_PWM_DMA_STREAM STM32_DMA1_STREAM3
+#define WS2812_PWM_DMA_CHANNEL 0
+#define WS2812_PWM_DMA_REQUEST TIM_DIER_CC2DE
+#define WS2812_PWM_COMPLEMENTARY_OUTPUT
+#define RGB_MATRIX_LED_PROCESS_LIMIT 32
+#define RGB_MATRIX_LED_FLUSH_LIMIT 8
+
 #define ANALOG_AXIS_PIN_X B0
 #define ANALOG_AXIS_PIN_Y B1
-

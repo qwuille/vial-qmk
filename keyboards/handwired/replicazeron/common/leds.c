@@ -18,26 +18,45 @@
 #include <stdbool.h>
 #include "gpio.h"
 
+#define STATUS_LED_PWM_STEPS 8
+
 //////////// Status LEDs //////////////
-void init_leds(void) {
-    // Both LEDs off, they have inverted logic
-    gpio_set_pin_output(STATUS_LED_A_PIN);
-    gpio_set_pin_output(STATUS_LED_B_PIN);
-    gpio_write_pin_high(STATUS_LED_A_PIN);
-    gpio_write_pin_high(STATUS_LED_B_PIN);
+static void write_led(pin_t pin, bool on, bool active_low) {
+    gpio_write_pin(pin, active_low ? !on : on);
 }
 
-void set_leds(uint8_t highest_active_layer) {
-    // any layer other than 0-3, quit and LEDs off
-    if (highest_active_layer > 3) {
-        gpio_write_pin_high(STATUS_LED_A_PIN);
-        gpio_write_pin_high(STATUS_LED_B_PIN);
+void init_leds(bool active_low) {
+    gpio_set_pin_output(STATUS_LED_A_PIN);
+    gpio_set_pin_output(STATUS_LED_B_PIN);
+    write_led(STATUS_LED_A_PIN, false, active_low);
+    write_led(STATUS_LED_B_PIN, false, active_low);
+}
+
+void update_leds(uint8_t level_a, uint8_t level_b, bool enabled, bool active_low, uint8_t brightness) {
+    static uint8_t pwm_phase;
+
+    if (!enabled || brightness == 0) {
+        write_led(STATUS_LED_A_PIN, false, active_low);
+        write_led(STATUS_LED_B_PIN, false, active_low);
         return;
     }
 
-    // use bitwise operations to display active layer in binary
-    bool bit1 = !(highest_active_layer & 1);
-    bool bit2 = !(highest_active_layer & 2);
-    gpio_write_pin(STATUS_LED_A_PIN, bit1);
-    gpio_write_pin(STATUS_LED_B_PIN, bit2);
+    level_a = ((uint16_t)level_a * brightness) / UINT8_MAX;
+    level_b = ((uint16_t)level_b * brightness) / UINT8_MAX;
+    /* Advance independently on each keyboard task. Using the millisecond
+     * clock here can alias with the main loop and repeatedly hit one phase,
+     * making every brightness setting look identical. */
+    uint8_t phase = pwm_phase;
+    pwm_phase = (pwm_phase + 1) & (STATUS_LED_PWM_STEPS - 1);
+    uint8_t pwm_level_a = (level_a + 31) / 32;
+    uint8_t pwm_level_b = (level_b + 31) / 32;
+    bool led_a_on = pwm_level_a >= STATUS_LED_PWM_STEPS || phase < pwm_level_a;
+    bool led_b_on = pwm_level_b >= STATUS_LED_PWM_STEPS || phase < pwm_level_b;
+    write_led(STATUS_LED_A_PIN, led_a_on, active_low);
+    write_led(STATUS_LED_B_PIN, led_b_on, active_low);
+}
+
+void suspend_leds(bool active_low) {
+    write_led(STATUS_LED_A_PIN, false, active_low);
+    write_led(STATUS_LED_B_PIN, false, active_low);
 }

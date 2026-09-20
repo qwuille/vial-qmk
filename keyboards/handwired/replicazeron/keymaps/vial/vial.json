@@ -1,5 +1,9 @@
 {
-    "lighting": "none",
+    "name": "Replicazeron",
+    "vendorId": "0x4142",
+    "productId": "0x2305",
+    "deviceId": 0,
+    "lighting": "vialrgb",
     "matrix": {
         "rows": 6,
         "cols": 5

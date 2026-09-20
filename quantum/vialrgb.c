@@ -17,6 +17,28 @@ typedef struct {
 
 #define SUPPORTED_MODES_LENGTH (sizeof(supported_modes)/sizeof(*supported_modes))
 
+__attribute__((weak)) bool vialrgb_allow_write_kb(uint8_t command) {
+    (void)command;
+    return true;
+}
+
+__attribute__((weak)) uint16_t vialrgb_get_number_leds_kb(void) {
+    return RGB_MATRIX_LED_COUNT;
+}
+
+__attribute__((weak)) bool vialrgb_get_led_info_kb(uint16_t led, uint8_t *output) {
+    (void)led;
+    (void)output;
+    return false;
+}
+
+__attribute__((weak)) void vialrgb_set_led_kb(uint16_t led, uint8_t hue, uint8_t sat, uint8_t val) {
+    (void)led;
+    (void)hue;
+    (void)sat;
+    (void)val;
+}
+
 #ifdef RGB_MATRIX_EFFECT_VIALRGB_DIRECT
 HSV g_direct_mode_colors[RGB_MATRIX_LED_COUNT];
 #endif
@@ -100,12 +122,19 @@ static void fast_set_leds(uint8_t *args, size_t length) {
     if (num_leds * 3 > length) return;
 
     for (size_t i = 0; i < num_leds; ++i) {
-        if (i + first_index >= RGB_MATRIX_LED_COUNT)
+        uint16_t led = i + first_index;
+        if (led >= vialrgb_get_number_leds_kb())
             break;
-        g_direct_mode_colors[i + first_index].h = args[i * 3 + 0];
-        g_direct_mode_colors[i + first_index].s = args[i * 3 + 1];
+        uint8_t hue = args[i * 3 + 0];
+        uint8_t sat = args[i * 3 + 1];
         uint8_t val = args[i * 3 + 2];
-        g_direct_mode_colors[i + first_index].v = (val > RGB_MATRIX_MAXIMUM_BRIGHTNESS) ? RGB_MATRIX_MAXIMUM_BRIGHTNESS : val;
+        val = (val > RGB_MATRIX_MAXIMUM_BRIGHTNESS) ? RGB_MATRIX_MAXIMUM_BRIGHTNESS : val;
+        if (led < RGB_MATRIX_LED_COUNT) {
+            g_direct_mode_colors[led].h = hue;
+            g_direct_mode_colors[led].s = sat;
+            g_direct_mode_colors[led].v = val;
+        }
+        vialrgb_set_led_kb(led, hue, sat, val);
     }
 }
 #endif
@@ -138,13 +167,18 @@ void vialrgb_get_value(uint8_t *data, uint8_t length) {
     }
 #ifdef RGB_MATRIX_EFFECT_VIALRGB_DIRECT
     case vialrgb_get_number_leds: {
-        args[0] = RGB_MATRIX_LED_COUNT & 0xFF;
-        args[1] = RGB_MATRIX_LED_COUNT >> 8;
+        uint16_t led_count = vialrgb_get_number_leds_kb();
+        args[0] = led_count & 0xFF;
+        args[1] = led_count >> 8;
         break;
     }
     case vialrgb_get_led_info: {
-        uint16_t led = (args[0] & 0xFF) | (args[1] >> 8);
-        if (led >= RGB_MATRIX_LED_COUNT) return;
+        uint16_t led = args[0] | (args[1] << 8);
+        if (led >= vialrgb_get_number_leds_kb()) return;
+        memset(args, 0xFF, 5);
+        if (vialrgb_get_led_info_kb(led, args)) {
+            break;
+        }
         // x, y
         args[0] = g_led_config.point[led].x;
         args[1] = g_led_config.point[led].y;
@@ -163,6 +197,7 @@ void vialrgb_set_value(uint8_t *data, uint8_t length) {
 
     /* data[0] is used by VIA command id */
     uint8_t cmd = data[1];
+    if (!vialrgb_allow_write_kb(cmd)) return;
     uint8_t *args = &data[2];
     switch (cmd) {
     case vialrgb_set_mode: {
@@ -182,8 +217,7 @@ void vialrgb_set_value(uint8_t *data, uint8_t length) {
 }
 
 void vialrgb_save(uint8_t *data, uint8_t length) {
-    (void)data;
-    (void)length;
+    if (length != VIAL_RAW_EPSIZE || !vialrgb_allow_write_kb(data[1])) return;
 
     eeconfig_force_flush_rgb_matrix();
 }

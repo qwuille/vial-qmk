@@ -25,6 +25,7 @@
 
 #define _DEADZONE  100  // 0 to _SHIFTZONE-1
 #define _SHIFTZONE 350  // _DEADZONE+1 to 600
+#define _FILTER_STRENGTH 20 // 0 disables axis filtering, 100 allows only the dominant axis
 #define _THUMBSTICK_ROTATION 100 //degrees, adjusts forward direction
 
 /* Locking resynchronize hack */

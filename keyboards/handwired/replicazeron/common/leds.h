@@ -16,8 +16,11 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
-void init_leds(void);
+void init_leds(bool active_low);
 
-void set_leds(uint8_t active_layer);
+void update_leds(uint8_t level_a, uint8_t level_b, bool enabled, bool active_low, uint8_t brightness);
+
+void suspend_leds(bool active_low);

@@ -1,36 +1,90 @@
-# Quantum Mechanical Keyboard Firmware
+# Replicazeron firmware
 
-[![Current Version](https://img.shields.io/github/tag/qmk/qmk_firmware.svg)](https://github.com/qmk/qmk_firmware/tags)
-[![Discord](https://img.shields.io/discord/440868230475677696.svg)](https://discord.gg/qmk)
-[![Docs Status](https://img.shields.io/badge/docs-ready-orange.svg)](https://docs.qmk.fm)
-[![GitHub contributors](https://img.shields.io/github/contributors/qmk/qmk_firmware.svg)](https://github.com/qmk/qmk_firmware/pulse/monthly)
-[![GitHub forks](https://img.shields.io/github/forks/qmk/qmk_firmware.svg?style=social&label=Fork)](https://github.com/qmk/qmk_firmware/)
+This repository is Qwuille's maintained Vial/QMK firmware for the Replicazeron
+one-handed game controller. It contains the firmware source, WebHID control
+deck, build instructions, and firmware-specific hardware information.
 
-This is a keyboard firmware based on the [tmk\_keyboard firmware](https://github.com/tmk/tmk_keyboard) with some useful features for Atmel AVR and ARM controllers, and more specifically, the [OLKB product line](https://olkb.com), the [ErgoDox EZ](https://ergodox-ez.com) keyboard, and the Clueboard product line.
+Printable models are deliberately not distributed here. Builders looking for
+existing models and the earlier hardware documentation should use the separate
+[Incedius Replicazeron](https://github.com/incedius/replicazeron) and
+[9R Replicazeron](https://github.com/9R/replicazeron) projects. Future models
+created by Qwuille may be added here and will be identified as such.
+
+## Highlights
+
+- Vial remapping, macros, and ten playable layouts plus a protected Settings
+  layer.
+- Per-layout Joystick, WASD, and WASD + Shift modes.
+- VialRGB/OpenRGB control through the existing Vial Raw HID interface.
+- Firmware-controlled lighting with eleven effects, including KITT-style
+  Knight Rider, Cylon, Pulse, and activity-driven Reactive Pulse.
+- Runtime addressable-strip length from 1 to 32 pixels; default 11.
+- Two independently configurable monochrome side LEDs, physically located
+  together on the right side of the controller. The left LED is PB13 and the
+  right LED is PB12.
+- OLED menus and a standalone WebHID control deck.
+- Browser-assisted STM32duino DFU updates, with a PA12 reconnect workaround
+  for affected Blue Pill clones.
+- Addressable and side LEDs sleep when the USB host suspends.
+
+## Supported target
+
+The maintained and tested target is:
+
+```text
+Keyboard: handwired/replicazeron/stm32f103
+Keymap:   vial
+MCU:      STM32F103 Blue Pill or compatible clone
+```
+
+Build it with:
+
+```sh
+qmk compile -kb handwired/replicazeron/stm32f103 -km vial
+```
+
+The legacy Pro Micro and experimental RP2040 definitions are not release
+targets for the complete feature set documented here.
 
 ## Documentation
 
-* [See the official documentation on docs.qmk.fm](https://docs.qmk.fm)
+- [Complete component, pin, power, and compatibility guide](keyboards/handwired/replicazeron/HARDWARE.md)
+- [Firmware features, OpenRGB, WebHID, DFU, wiring, and usage](keyboards/handwired/replicazeron/readme.md)
+- [Planned work](keyboards/handwired/replicazeron/ROADMAP.md)
+- [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
 
-The docs are powered by [VitePress](https://vitepress.dev/). They are also viewable offline; see [Previewing the Documentation](https://docs.qmk.fm/#/contributing?id=previewing-the-documentation) for more details.
+The WebHID page is
+[`keyboards/handwired/replicazeron/title-editor.html`](keyboards/handwired/replicazeron/title-editor.html).
+Serve it over HTTPS or localhost and open it in a WebHID/WebUSB-capable Chromium
+browser such as Chrome or Edge.
 
-You can request changes by making a fork and opening a [pull request](https://github.com/qmk/qmk_firmware/pulls).
+## OpenRGB registration
 
-## Supported Keyboards
+Until the device is included in OpenRGB's built-in VialRGB list, add it under
+**Settings > QMK VialRGB Devices**:
 
-* [Planck](/keyboards/planck/)
-* [Preonic](/keyboards/preonic/)
-* [ErgoDox EZ](/keyboards/ergodox_ez/)
-* [Clueboard](/keyboards/clueboard/)
-* [Cluepad](/keyboards/clueboard/17/)
-* [Atreus](/keyboards/atreus/)
+| Field | Value |
+|---|---|
+| Name | `9R/Incedius/Qwuille Replicazeron` |
+| USB VID | `4142` |
+| USB PID | `2305` |
 
-The project also includes community support for [lots of other keyboards](/keyboards/).
+Select **OpenRGB** as the RGB controller on the Replicazeron's OLED or WebHID
+page. Vial remains available in both Firmware and OpenRGB controller modes.
 
-## Maintainers
+## Project lineage and scope
 
-QMK is developed and maintained by Jack Humbert of OLKB with contributions from the community, and of course, [Hasu](https://github.com/tmk). The OLKB product firmwares are maintained by [Jack Humbert](https://github.com/jackhumbert), the Ergodox EZ by [ZSA Technology Labs](https://github.com/zsa), the Clueboard by [Zach White](https://github.com/skullydazed), and the Atreus by [Phil Hagelberg](https://github.com/technomancy).
+This firmware follows work by
+[9R](https://github.com/9R/qmk_firmware) and
+[Incedius](https://github.com/incedius/vial-qmk), and is built on
+[Vial-QMK](https://github.com/vial-kb/vial-qmk) and
+[QMK](https://github.com/qmk/qmk_firmware). The names in the USB manufacturer
+string acknowledge the software lineage; they are not a claim that any of
+these maintainers designed the original commercial hardware that inspired the
+community project.
 
-## Official Website
+Qwuille maintains the firmware and additions in this repository. Incedius and
+9R maintain their own repositories, models, and documentation independently.
 
-[qmk.fm](https://qmk.fm) is the official website of QMK, where you can find links to this page, the documentation, and the keyboards supported by QMK.
+The inherited licenses and individual source-file copyright notices remain in
+effect. See [LICENSE](LICENSE) and the other license files in the repository.
