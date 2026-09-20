@@ -16,7 +16,14 @@
   - Calibration menu: Deadzone displays the live unfiltered stick distance on a center-to-outer gauge and saves on the next gamepad key press.
   - Axis Filter suppresses a small secondary axis relative to the dominant axis. Up/Down adjusts its persistent strength from 0 to 100%, center saves, and Left cancels.
   - The WebHID Control Deck can also read and write axis-filter strength and import/export settings as JSON.
-  - Mode menu: first choose one of the ten layouts, then center cycles joystick, WASD, and WASD-plus-Shift modes for that layout.
+  - Mode menu: choose one of the ten playable layouts to cycle Joystick, WASD,
+    and WASD-plus-Shift, or choose Settings tools to cycle its separate
+    scroll/pan/orbit behavior.
+  - Screen menu: choose one of the ten playable layouts and cycle Input
+    monitor, Macro focus, Game status, Combined, or Minimal OLED designs.
+    Combined uses its fourth row for the last macro instead of RGB status.
+  - Display menu: sets the OLED shutdown delay in 30-second steps or Never,
+    and the sleeping-logo interval in one-minute steps or Disabled.
   - Calibration continuously samples the thumbstick; any gamepad key saves the displayed deadzone.
 - `keymaps/vial/rules.mk`
   - Sets `DYNAMIC_KEYMAP_LAYER_COUNT = 11`.
@@ -28,19 +35,28 @@
   - Uses the custom-data signature to migrate Vial's per-build EEPROM marker so normal firmware reflashes preserve dynamic mappings, macros, and settings.
   - Reserves the EEPROM tail for joystick metadata and 16 macro names; this
     avoids overlapping Layout 0 while keeping the existing keymap start address.
+  - Packs each layout's OLED design into unused bits of its existing joystick
+    mode byte, so the feature consumes no Vial macro-buffer space.
   - Migrates the legacy `J2`/`J3` metadata and restores its seven overwritten
     Layout 0 positions from compiled defaults.
   - Seeds default titles:
     `Casual`, `Shooter`, `Misc`, `Empty 3` through `Empty 9`, and `Settings`.
 - `common/oled.c`
   - Renders title data stored in RAM.
+  - Renders five selectable per-layout status designs and live key, stick, and
+    macro information.
   - Shows a roughly 1.9-second Replicazeron ripple logo at boot.
-  - After the normal one-minute OLED timeout, occasionally wakes for another logo animation at a pseudo-random 2-to-5-minute interval, then blanks again. Key or menu activity cancels the idle animation.
+  - Defaults to shutting down after one idle minute and waking for the logo
+    every three minutes while asleep. Both timers are configurable from the
+    OLED or WebHID, and key or menu activity wakes the display immediately.
 - `common/leds.c`
   - Uses hardware PWM on the STM32 PB13 status LED to show unfiltered joystick distance: dim at center and smoothly brighter toward the outer edge.
   - Illuminates the PB12 status LED while any physical matrix switch is held, including switches currently mapped to `KC_NO`.
 - [Replicazeron WebHID Control Deck](https://github.com/qwuille/replicazeron_webhid)
-  - Provides the separately maintained browser editor for titles, joystick modes, input tuning, lighting, side indicators, JSON import/export, and WebUSB DFU.
+  - Provides the separately maintained browser editor for titles, joystick
+    modes, graphical OLED designs, input tuning, lighting, side indicators,
+    JSON import/export, and WebUSB DFU. Its macro editor uses an image-free CSS
+    keyboard for quickly building sequences.
 
 ## Using Layer Titles
 

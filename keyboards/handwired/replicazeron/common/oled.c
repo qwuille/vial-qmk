@@ -27,8 +27,6 @@ uint8_t shiftbits =32 ;
 #define LOGO_FRAME_MS              160
 #define LOGO_FRAME_COUNT           12
 #define LOGO_DURATION_MS           (LOGO_FRAME_MS * LOGO_FRAME_COUNT)
-#define IDLE_LOGO_MIN_DELAY_MS     120000UL
-#define IDLE_LOGO_DELAY_RANGE_MS   180001UL
 
 static bool     logo_timing_initialized;
 static bool     boot_logo_active = true;
@@ -36,24 +34,24 @@ static bool     idle_logo_active;
 static uint32_t logo_started;
 static uint32_t last_activity_seen;
 static uint32_t next_idle_logo;
-static uint32_t logo_random_state = 0x5245504CUL;
 
 static const char PROGMEM main_menu_labels[MAIN_MENU_ITEM_COUNT][8] = {
     "LAYOUT",
     "RGB",
     "SIDELED",
     "MODE",
+    "SCREEN",
     "CALIB",
+    "DISPLAY",
     "RESET"
 };
 
-static uint32_t next_logo_delay(void) {
-    /* A tiny PRNG is sufficient here; this only varies an animation interval. */
-    logo_random_state ^= logo_random_state << 13;
-    logo_random_state ^= logo_random_state >> 17;
-    logo_random_state ^= logo_random_state << 5;
-    logo_random_state ^= timer_read32();
-    return IDLE_LOGO_MIN_DELAY_MS + (logo_random_state % IDLE_LOGO_DELAY_RANGE_MS);
+static uint32_t oled_off_delay(uint8_t config) {
+    return (uint32_t)(REPLICAZERON_OLED_OFF_INDEX(config) + 1) * 30000UL;
+}
+
+static uint32_t logo_interval(uint8_t config) {
+    return (uint32_t)(REPLICAZERON_LOGO_INTERVAL_INDEX(config) + 1) * 60000UL;
 }
 
 static void logo_put_centered(char line[21], const char *text) {
@@ -117,23 +115,28 @@ static void draw_logo_frame(uint8_t frame) {
     }
 }
 
-static bool draw_logo_or_idle_blank(menu_state_t menu_state) {
+static bool draw_logo_or_idle_blank(controller_state_t controller_state) {
     uint32_t now      = timer_read32();
     uint32_t activity = last_input_activity_time();
+    uint8_t config    = controller_state.displayTimerConfig;
+    uint8_t off_index = REPLICAZERON_OLED_OFF_INDEX(config);
+    uint8_t logo_index = REPLICAZERON_LOGO_INTERVAL_INDEX(config);
+    uint32_t off_delay = oled_off_delay(config);
 
     if (!logo_timing_initialized) {
         logo_timing_initialized = true;
         logo_started            = now;
         last_activity_seen      = activity;
-        next_idle_logo          = activity + OLED_TIMEOUT + next_logo_delay();
+        next_idle_logo          = activity + off_delay + logo_interval(config);
     }
 
     /* Menus and fresh input always take control of the display immediately. */
-    if (menu_state != MENU_NONE || activity != last_activity_seen) {
+    if (controller_state.menuState != MENU_NONE || activity != last_activity_seen) {
         last_activity_seen = activity;
         boot_logo_active   = false;
         idle_logo_active   = false;
-        next_idle_logo     = activity + OLED_TIMEOUT + next_logo_delay();
+        next_idle_logo     = activity + off_delay + logo_interval(config);
+        oled_on();
         return false;
     }
 
@@ -146,8 +149,13 @@ static bool draw_logo_or_idle_blank(menu_state_t menu_state) {
         boot_logo_active = false;
     }
 
-    if (last_input_activity_elapsed() < OLED_TIMEOUT) {
+    if (off_index == REPLICAZERON_DISPLAY_TIMER_DISABLED || last_input_activity_elapsed() < off_delay) {
         return false;
+    }
+
+    if (logo_index == REPLICAZERON_DISPLAY_TIMER_DISABLED) {
+        oled_off();
+        return true;
     }
 
     if (!idle_logo_active && timer_expired32(now, next_idle_logo)) {
@@ -162,10 +170,12 @@ static bool draw_logo_or_idle_blank(menu_state_t menu_state) {
             draw_logo_frame(elapsed / LOGO_FRAME_MS);
         } else {
             idle_logo_active = false;
-            next_idle_logo   = now + next_logo_delay();
+            next_idle_logo   = now + logo_interval(config);
             oled_clear();
             oled_off();
         }
+    } else {
+        oled_off();
     }
 
     /* Leave the normal status screen hidden throughout the idle period. */
@@ -316,6 +326,27 @@ static void draw_calibration_menu(uint8_t selection) {
     oled_write_ln_P(PSTR("Left: Back"), false);
 }
 
+static void draw_display_menu(controller_state_t controller_state) {
+    uint8_t off_index  = REPLICAZERON_OLED_OFF_INDEX(controller_state.displayTimerConfig);
+    uint8_t logo_index = REPLICAZERON_LOGO_INTERVAL_INDEX(controller_state.displayTimerConfig);
+    oled_write_ln_P(PSTR("DISPLAY TIMERS"), false);
+    oled_write_P(controller_state.menuSelection == 0 ? PSTR(">Off: ") : PSTR(" Off: "), false);
+    if (off_index == REPLICAZERON_DISPLAY_TIMER_DISABLED) {
+        oled_write_ln_P(PSTR("Never"), false);
+    } else {
+        oled_write(get_u16_str((off_index + 1) * 30, ' '), false);
+        oled_write_ln_P(PSTR(" sec"), false);
+    }
+    oled_write_P(controller_state.menuSelection == 1 ? PSTR(">Logo: ") : PSTR(" Logo: "), false);
+    if (logo_index == REPLICAZERON_DISPLAY_TIMER_DISABLED) {
+        oled_write_ln_P(PSTR("Disabled"), false);
+    } else {
+        oled_write(get_u16_str(logo_index + 1, ' '), false);
+        oled_write_ln_P(PSTR(" min"), false);
+    }
+    oled_write_ln_P(PSTR("L/R Change Menu Back"), false);
+}
+
 static const char *side_led_source_name(uint8_t source) {
     switch (source) {
         case SIDE_LED_SOURCE_STICK: return PSTR("Stick");
@@ -432,30 +463,89 @@ static void draw_mode_value(joystick_mode_t mode) {
     }
 }
 
-static void draw_mode_layout_browser(controller_state_t controller_state) {
-    oled_write_ln_P(PSTR("MODE: LAYOUT"), false);
+static void draw_settings_stick_value(uint8_t mode) {
+    switch (mode) {
+        case SETTINGS_STICK_MIDDLE_DRAG:
+            oled_write_ln_P(PSTR("CAD middle pan"), false);
+            break;
+        case SETTINGS_STICK_SHIFT_MIDDLE_DRAG:
+            oled_write_ln_P(PSTR("CAD Shift orbit"), false);
+            break;
+        case SETTINGS_STICK_RIGHT_DRAG:
+            oled_write_ln_P(PSTR("CAD right orbit"), false);
+            break;
+        default:
+            oled_write_ln_P(PSTR("Page scroll/cursor"), false);
+            break;
+    }
+}
+
+static const char *oled_layout_preset_name(uint8_t preset) {
+    switch (preset) {
+        case OLED_LAYOUT_MACRO: return PSTR("Macro");
+        case OLED_LAYOUT_GAME: return PSTR("Game");
+        case OLED_LAYOUT_COMBINED: return PSTR("Combined");
+        case OLED_LAYOUT_MINIMAL: return PSTR("Minimal");
+        default: return PSTR("Input monitor");
+    }
+}
+
+static void draw_screen_layout_browser(controller_state_t controller_state) {
+    oled_write_ln_P(PSTR("SCREEN: LAYOUT"), false);
     oled_write_P(PSTR("> "), false);
     draw_layout_name(controller_state.menuSelection, true);
-    draw_mode_value(controller_state.layoutModes[controller_state.menuSelection]);
+    oled_write_ln_P(oled_layout_preset_name(controller_state.layoutDisplayPresets[controller_state.menuSelection]), false);
+    oled_write_ln_P(PSTR("Up/Dn then Menu"), false);
+}
+
+static void draw_screen_menu(controller_state_t controller_state) {
+    oled_write_ln_P(PSTR("OLED DESIGN"), false);
+    draw_layout_name(controller_state.layoutSelection, true);
+    oled_write_ln_P(oled_layout_preset_name(controller_state.layoutDisplayPresets[controller_state.layoutSelection]), false);
+    oled_write_ln_P(PSTR("Menu Cycle Left Back"), false);
+}
+
+static void draw_mode_layout_browser(controller_state_t controller_state) {
+    if (controller_state.menuSelection == LAYOUT_COUNT) {
+        oled_write_ln_P(PSTR("SETTINGS TOOLS"), false);
+        oled_write_ln_P(PSTR("> Settings layer"), false);
+        draw_settings_stick_value(controller_state.settingsStickMode);
+    } else {
+        oled_write_ln_P(PSTR("MODE: LAYOUT"), false);
+        oled_write_P(PSTR("> "), false);
+        draw_layout_name(controller_state.menuSelection, true);
+        draw_mode_value(controller_state.layoutModes[controller_state.menuSelection]);
+    }
     oled_write_ln_P(PSTR("Up/Dn then Menu"), false);
 }
 
 static void draw_mode_menu(controller_state_t controller_state) {
-    oled_write_ln_P(PSTR("MODE"), false);
-    draw_layout_name(controller_state.layoutSelection, true);
-    draw_mode_value(controller_state.layoutModes[controller_state.layoutSelection]);
+    if (controller_state.layoutSelection == LAYOUT_COUNT) {
+        oled_write_ln_P(PSTR("SETTINGS TOOLS"), false);
+        oled_write_ln_P(PSTR("Settings layer"), false);
+        draw_settings_stick_value(controller_state.settingsStickMode);
+    } else {
+        oled_write_ln_P(PSTR("MODE"), false);
+        draw_layout_name(controller_state.layoutSelection, true);
+        draw_mode_value(controller_state.layoutModes[controller_state.layoutSelection]);
+    }
     oled_write_ln_P(PSTR("Menu Cycle Left Back"), false);
 }
 
 //////////// OLED output helpers //////////////
 void draw_mode(controller_state_t controller_state) {
     //draw oled row showing thumbstick mode
-    oled_write_P(PSTR("Mode: "), false);
-    if (controller_state.wasdShiftMode) {
+    if (controller_state.highestActiveLayer == _SETTINGS) {
+        oled_write_P(PSTR("Tool: "), false);
+        draw_settings_stick_value(controller_state.settingsStickMode);
+    } else if (controller_state.wasdShiftMode) {
+        oled_write_P(PSTR("Mode: "), false);
         oled_write_ln_P(PSTR("WASD + Shift"), false);
     } else if (controller_state.wasdMode) {
+        oled_write_P(PSTR("Mode: "), false);
         oled_write_ln_P(PSTR("WASD"), false);
     } else {
+        oled_write_P(PSTR("Mode: "), false);
         oled_write_ln_P(PSTR("JoyStick"), false);
     }
 }
@@ -490,9 +580,115 @@ void draw_thumb_debug(thumbstick_polar_position_t thumbstick_polar_position) {
     draw_wasd_key(wasd_state);
 }
 
+static const char *stick_direction(uint16_t angle, uint16_t distance, uint16_t deadzone) {
+    if (distance < deadzone) return PSTR("--");
+    if (angle < 23 || angle >= 338) return PSTR("N");
+    if (angle < 68) return PSTR("NW");
+    if (angle < 113) return PSTR("W");
+    if (angle < 158) return PSTR("SW");
+    if (angle < 203) return PSTR("S");
+    if (angle < 248) return PSTR("SE");
+    if (angle < 293) return PSTR("E");
+    return PSTR("NE");
+}
+
+static uint8_t held_key_count(void) {
+    uint8_t count = 0;
+    for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+        matrix_row_t keys = matrix_get_row(row);
+        while (keys) {
+            count += keys & 1;
+            keys >>= 1;
+        }
+    }
+    return count;
+}
+
+static void draw_macro_name(uint8_t macro, bool prefix) {
+    if (prefix) {
+        oled_write_P(PSTR("Last: "), false);
+    }
+    if (macro == REPLICAZERON_LAST_MACRO_NONE) {
+        oled_write_ln_P(PSTR("None"), false);
+        return;
+    }
+#ifdef VIA_ENABLE
+    char name[REPLICAZERON_TITLE_LENGTH];
+    replicazeron_read_macro_name(macro, name);
+    for (uint8_t index = 0; index < REPLICAZERON_TITLE_LENGTH; ++index) {
+        oled_write_char(name[index], false);
+    }
+    oled_write_ln_P(PSTR(""), false);
+#else
+    oled_write_P(PSTR("Macro "), false);
+    oled_write_ln(get_u16_str(macro, ' '), false);
+#endif
+}
+
+static void draw_stick_line(controller_state_t controller_state, bool include_keys) {
+    oled_write_P(PSTR("Stick: "), false);
+    oled_write_P(stick_direction(thumbstick_polar_position.angle, thumbstick_polar_position.distance, controller_state.deadzone), false);
+    oled_write_P(PSTR(" "), false);
+    oled_write(get_u16_str(MIN(100, ((uint32_t)thumbstick_polar_position.distance * 100) / 724), ' '), false);
+    oled_write_P(PSTR("%"), false);
+    if (include_keys) {
+        oled_write_P(PSTR(" K"), false);
+        oled_write(get_u16_str(held_key_count(), ' '), false);
+    }
+    oled_write_ln_P(PSTR(""), false);
+}
+
+static void draw_macro_count(controller_state_t controller_state) {
+    oled_write_P(PSTR("Macros: "), false);
+    oled_write(get_u16_str(controller_state.macroSlotsUsed, ' '), false);
+    oled_write_ln_P(PSTR("/16"), false);
+}
+
+static void draw_playable_layout(controller_state_t controller_state) {
+    uint8_t layout = controller_state.highestActiveLayer;
+    uint8_t preset = controller_state.layoutDisplayPresets[layout];
+    oled_write_P(PSTR("Layout:"), false);
+    draw_layout_name(layout, true);
+
+    if (preset == OLED_LAYOUT_COMBINED) {
+        draw_stick_line(controller_state, true);
+        draw_macro_count(controller_state);
+        draw_macro_name(controller_state.lastMacro, true);
+        return;
+    }
+
+    draw_mode(controller_state);
+    switch (preset) {
+        case OLED_LAYOUT_MACRO:
+            if (controller_state.lastMacro == REPLICAZERON_LAST_MACRO_NONE) {
+                oled_write_ln_P(PSTR("Macro: None"), false);
+                oled_write_ln_P(PSTR("No macro used"), false);
+            } else {
+                oled_write_P(PSTR("Macro: "), false);
+                oled_write_ln(get_u16_str(controller_state.lastMacro, ' '), false);
+                draw_macro_name(controller_state.lastMacro, false);
+            }
+            break;
+        case OLED_LAYOUT_GAME:
+            draw_macro_count(controller_state);
+            draw_macro_name(controller_state.lastMacro, true);
+            break;
+        case OLED_LAYOUT_MINIMAL:
+            oled_write_ln_P(PSTR(""), false);
+            oled_write_ln_P(PSTR(""), false);
+            break;
+        case OLED_LAYOUT_INPUT:
+        default:
+            draw_stick_line(controller_state, false);
+            oled_write_P(PSTR("Keys held: "), false);
+            oled_write_ln(get_u16_str(held_key_count(), ' '), false);
+            break;
+    }
+}
+
 //////////// draw OLED output //////////////
 void draw_oled(controller_state_t controller_state) {
-    if (draw_logo_or_idle_blank(controller_state.menuState)) {
+    if (draw_logo_or_idle_blank(controller_state)) {
         return;
     }
 
@@ -537,6 +733,12 @@ void draw_oled(controller_state_t controller_state) {
             case MENU_MODE:
                 draw_mode_menu(controller_state);
                 return;
+            case MENU_SCREEN_LAYOUT:
+                draw_screen_layout_browser(controller_state);
+                return;
+            case MENU_SCREEN:
+                draw_screen_menu(controller_state);
+                return;
             case MENU_CALIB:
                 draw_calibration_menu(controller_state.menuSelection);
                 return;
@@ -546,6 +748,9 @@ void draw_oled(controller_state_t controller_state) {
             case MENU_CALIB_FILTER:
                 draw_filter_calibration(controller_state.filterCandidate);
                 return;
+            case MENU_DISPLAY:
+                draw_display_menu(controller_state);
+                return;
             case MENU_FACTORY_RESET:
                 draw_factory_reset_menu();
                 return;
@@ -553,8 +758,6 @@ void draw_oled(controller_state_t controller_state) {
                 break;
         }
     }
-
-    oled_write_P(PSTR("Layout:"), false);
 
     switch (controller_state.highestActiveLayer) {
         case _LAYOUT_1:
@@ -567,15 +770,16 @@ void draw_oled(controller_state_t controller_state) {
         case _LAYOUT_8:
         case _LAYOUT_9:
         case _LAYOUT_10:
-            draw_layout_name(controller_state.highestActiveLayer, false);
-            break;
+            draw_playable_layout(controller_state);
+            return;
 
         case _SETTINGS:
+            oled_write_P(PSTR("Layout:"), false);
             draw_layout_name(controller_state.highestActiveLayer, false);
             break;
 
         default:
-            oled_write_P(PSTR("Unknown"), false);
+            oled_write_P(PSTR("Layout:Unknown"), false);
     }
     oled_write_ln_P(PSTR(""), false);
 

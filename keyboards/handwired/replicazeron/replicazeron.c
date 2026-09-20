@@ -267,6 +267,14 @@ static void read_metadata(void *buffer, uint32_t offset, uint32_t length) {
     eeprom_read_block(buffer, (void *)(uintptr_t)(REPLICAZERON_METADATA_EEPROM_ADDR + offset), length);
 }
 
+void replicazeron_read_macro_name(uint8_t macro, char name[REPLICAZERON_TITLE_LENGTH]) {
+    if (macro < REPLICAZERON_MACRO_NAME_COUNT) {
+        read_metadata(name, REPLICAZERON_MACRO_NAMES_OFFSET + macro * REPLICAZERON_TITLE_LENGTH, REPLICAZERON_TITLE_LENGTH);
+    } else {
+        memset(name, ' ', REPLICAZERON_TITLE_LENGTH);
+    }
+}
+
 static void write_metadata(const void *buffer, uint32_t offset, uint32_t length) {
     eeprom_update_block(buffer, (void *)(uintptr_t)(REPLICAZERON_METADATA_EEPROM_ADDR + offset), length);
 }
@@ -289,6 +297,26 @@ static void write_macro_timing(uint8_t macro) {
     eeprom_update_block(&macro_timings[macro],
                         (void *)(uintptr_t)(REPLICAZERON_MACRO_TIMING_EEPROM_ADDR + macro * sizeof(macro_timing_t)),
                         sizeof(macro_timing_t));
+}
+
+static void update_macro_slots_used(void) {
+    uint16_t size = dynamic_keymap_macro_get_buffer_size();
+    uint8_t slot = 0;
+    bool has_data = false;
+    controller_state.macroSlotsUsed = 0;
+    for (uint16_t offset = 0; offset < size && slot < REPLICAZERON_MACRO_NAME_COUNT; ++offset) {
+        uint8_t value;
+        dynamic_keymap_macro_get_buffer(offset, 1, &value);
+        if (value == 0) {
+            if (has_data) {
+                ++controller_state.macroSlotsUsed;
+            }
+            has_data = false;
+            ++slot;
+        } else {
+            has_data = true;
+        }
+    }
 }
 
 static void initialize_macro_names(void) {
@@ -324,14 +352,16 @@ static void write_layout_modes(void) {
 #ifdef VIA_ENABLE
     uint8_t stored_modes[REPLICAZERON_MODE_STORAGE_SIZE];
     for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
-        stored_modes[layout] = controller_state.layoutModes[layout];
+        stored_modes[layout] = controller_state.layoutModes[layout] | (controller_state.layoutDisplayPresets[layout] << 2);
     }
     write_metadata(stored_modes, REPLICAZERON_MODE_STORAGE_OFFSET, REPLICAZERON_MODE_STORAGE_SIZE);
-    write_metadata(&controller_state.sideLedSourceA, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
-    write_metadata(&controller_state.sideLedSourceB, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
+    uint8_t stored_source_a = controller_state.sideLedSourceA | (REPLICAZERON_OLED_OFF_INDEX(controller_state.displayTimerConfig) << 4);
+    uint8_t stored_source_b = controller_state.sideLedSourceB | (REPLICAZERON_LOGO_INTERVAL_INDEX(controller_state.displayTimerConfig) << 4);
+    write_metadata(&stored_source_a, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
+    write_metadata(&stored_source_b, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
     write_metadata(&controller_state.sideLedsActiveLow, REPLICAZERON_SIDE_LED_POLARITY_OFFSET, 1);
     write_metadata(&controller_state.settingsStickMode, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
-    static const uint8_t metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE] = {'R', '7'};
+    static const uint8_t metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE] = {'R', '9'};
     write_metadata(metadata_signature, REPLICAZERON_METADATA_SIGNATURE_OFFSET, sizeof(metadata_signature));
 #endif
 }
@@ -351,6 +381,13 @@ static void set_layout_mode(uint8_t layout, joystick_mode_t mode) {
     }
 }
 
+static void set_layout_display_preset(uint8_t layout, uint8_t preset) {
+    if (layout < LAYOUT_COUNT && preset < OLED_LAYOUT_PRESET_COUNT && controller_state.layoutDisplayPresets[layout] != preset) {
+        controller_state.layoutDisplayPresets[layout] = preset;
+        write_layout_modes();
+    }
+}
+
 static void set_settings_stick_mode(uint8_t mode) {
     if (mode < SETTINGS_STICK_MODE_COUNT && controller_state.settingsStickMode != mode) {
         controller_state.settingsStickMode = mode;
@@ -360,6 +397,25 @@ static void set_settings_stick_mode(uint8_t mode) {
 #endif
         write_layout_modes();
     }
+}
+
+static void set_display_timers(uint8_t oled_off, uint8_t logo_interval) {
+    if (oled_off > REPLICAZERON_DISPLAY_TIMER_DISABLED || logo_interval > REPLICAZERON_DISPLAY_TIMER_DISABLED) {
+        return;
+    }
+    uint8_t config = REPLICAZERON_DISPLAY_TIMER_CONFIG(oled_off, logo_interval);
+    if (controller_state.displayTimerConfig != config) {
+        controller_state.displayTimerConfig = config;
+        write_layout_modes();
+    }
+}
+
+static void change_display_timer(bool logo_interval, bool increase) {
+    uint8_t oled = REPLICAZERON_OLED_OFF_INDEX(controller_state.displayTimerConfig);
+    uint8_t logo = REPLICAZERON_LOGO_INTERVAL_INDEX(controller_state.displayTimerConfig);
+    uint8_t *value = logo_interval ? &logo : &oled;
+    *value = increase ? (*value + 1) & 0x0F : (*value - 1) & 0x0F;
+    set_display_timers(oled, logo);
 }
 
 static void load_layout_modes(void) {
@@ -372,23 +428,45 @@ static void load_layout_modes(void) {
 #ifdef VIA_ENABLE
     uint8_t stored_metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE];
     read_metadata(stored_metadata_signature, REPLICAZERON_METADATA_SIGNATURE_OFFSET, sizeof(stored_metadata_signature));
-    bool metadata_valid = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '7';
+    bool metadata_valid = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '9';
+    bool metadata_is_r8 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '8';
+    bool metadata_is_r7 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '7';
     bool metadata_is_r6 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '6';
     bool metadata_is_r5 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '5';
     bool metadata_needs_keymap_migration = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '4';
-    if (metadata_valid || metadata_is_r6 || metadata_is_r5 || metadata_needs_keymap_migration) {
+    if (metadata_valid || metadata_is_r8 || metadata_is_r7 || metadata_is_r6 || metadata_is_r5 || metadata_needs_keymap_migration) {
         uint8_t stored_modes[REPLICAZERON_MODE_STORAGE_SIZE];
         read_metadata(stored_modes, REPLICAZERON_MODE_STORAGE_OFFSET, sizeof(stored_modes));
         modes_loaded = true;
         for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
-            controller_state.layoutModes[layout] = stored_modes[layout];
+            controller_state.layoutModes[layout] = metadata_valid ? stored_modes[layout] & 0x03 : stored_modes[layout];
+            controller_state.layoutDisplayPresets[layout] = metadata_valid ? (stored_modes[layout] >> 2) & 0x07 : OLED_LAYOUT_INPUT;
             if (controller_state.layoutModes[layout] >= JOYSTICK_MODE_COUNT) {
                 controller_state.layoutModes[layout] = JOYSTICK_MODE_ANALOG;
                 modes_loaded = false;
             }
+            if (controller_state.layoutDisplayPresets[layout] >= OLED_LAYOUT_PRESET_COUNT) {
+                controller_state.layoutDisplayPresets[layout] = OLED_LAYOUT_INPUT;
+                modes_need_write = true;
+            }
         }
-        read_metadata(&controller_state.sideLedSourceA, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
-        read_metadata(&controller_state.sideLedSourceB, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
+        if (!metadata_valid) {
+            modes_need_write = true;
+        }
+        uint8_t stored_source_a;
+        uint8_t stored_source_b;
+        read_metadata(&stored_source_a, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
+        read_metadata(&stored_source_b, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
+        if (metadata_valid || metadata_is_r8) {
+            controller_state.sideLedSourceA = stored_source_a & 0x07;
+            controller_state.sideLedSourceB = stored_source_b & 0x07;
+            controller_state.displayTimerConfig = REPLICAZERON_DISPLAY_TIMER_CONFIG(stored_source_a >> 4, stored_source_b >> 4);
+        } else {
+            controller_state.sideLedSourceA = stored_source_a;
+            controller_state.sideLedSourceB = stored_source_b;
+            controller_state.displayTimerConfig = REPLICAZERON_DISPLAY_TIMER_CONFIG(REPLICAZERON_OLED_OFF_DEFAULT, REPLICAZERON_LOGO_INTERVAL_DEFAULT);
+            modes_need_write = true;
+        }
         if (controller_state.sideLedSourceA >= SIDE_LED_SOURCE_COUNT) {
             controller_state.sideLedSourceA = SIDE_LED_SOURCE_STICK;
             modes_need_write = true;
@@ -402,14 +480,14 @@ static void load_layout_modes(void) {
         if (stored_polarity <= 1) {
             controller_state.sideLedsActiveLow = stored_polarity != 0;
         }
-        if (metadata_valid || metadata_is_r6) {
+        if (metadata_valid || metadata_is_r8 || metadata_is_r7 || metadata_is_r6) {
             load_macro_timings();
         } else {
             initialize_macro_timings();
             eeprom_update_byte((uint8_t *)(uintptr_t)DYNAMIC_KEYMAP_EEPROM_MAX_ADDR, 0);
             modes_need_write = true;
         }
-        if (metadata_valid) {
+        if (metadata_valid || metadata_is_r8 || metadata_is_r7) {
             read_metadata(&controller_state.settingsStickMode, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
             if (controller_state.settingsStickMode >= SETTINGS_STICK_MODE_COUNT) {
                 controller_state.settingsStickMode = SETTINGS_STICK_MOUSE;
@@ -466,7 +544,7 @@ static void load_layout_modes(void) {
         eeprom_update_byte((uint8_t *)(uintptr_t)DYNAMIC_KEYMAP_EEPROM_MAX_ADDR, 0);
         modes_need_write = true;
     }
-    if (!metadata_valid && !metadata_is_r6 && !metadata_is_r5) {
+    if (!metadata_valid && !metadata_is_r8 && !metadata_is_r7 && !metadata_is_r6 && !metadata_is_r5) {
         /* Layers 3 and 4 used to contain remnants of the old setup layer.
          * Settings is now a tool layer. Restore only those three layers once,
          * leaving every user layout outside them untouched. */
@@ -675,6 +753,10 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_CONFIG_HEARTBEAT 0x10
 #    define REPLICAZERON_SETTINGS_STICK_GET 0x11
 #    define REPLICAZERON_SETTINGS_STICK_SET 0x12
+#    define REPLICAZERON_DISPLAY_GET 0x13
+#    define REPLICAZERON_DISPLAY_SET 0x14
+#    define REPLICAZERON_LAYOUT_DISPLAY_GET 0x15
+#    define REPLICAZERON_LAYOUT_DISPLAY_SET 0x16
 
 char replicazeron_titles[REPLICAZERON_TITLE_COUNT][REPLICAZERON_TITLE_LENGTH] = {
     "Casual       ",
@@ -750,6 +832,27 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             data[0] = id_unhandled;
         } else {
             set_settings_stick_mode(data[3]);
+        }
+    } else if (data[1] == REPLICAZERON_DISPLAY_GET) {
+        data[3] = REPLICAZERON_OLED_OFF_INDEX(controller_state.displayTimerConfig);
+        data[4] = REPLICAZERON_LOGO_INTERVAL_INDEX(controller_state.displayTimerConfig);
+    } else if (data[1] == REPLICAZERON_DISPLAY_SET) {
+        if (data[3] > REPLICAZERON_DISPLAY_TIMER_DISABLED || data[4] > REPLICAZERON_DISPLAY_TIMER_DISABLED) {
+            data[0] = id_unhandled;
+        } else {
+            set_display_timers(data[3], data[4]);
+        }
+    } else if (data[1] == REPLICAZERON_LAYOUT_DISPLAY_GET) {
+        if (data[2] >= LAYOUT_COUNT) {
+            data[0] = id_unhandled;
+        } else {
+            data[3] = controller_state.layoutDisplayPresets[data[2]];
+        }
+    } else if (data[1] == REPLICAZERON_LAYOUT_DISPLAY_SET) {
+        if (data[2] >= LAYOUT_COUNT || data[3] >= OLED_LAYOUT_PRESET_COUNT) {
+            data[0] = id_unhandled;
+        } else {
+            set_layout_display_preset(data[2], data[3]);
         }
     } else if (data[1] == REPLICAZERON_DEADZONE_GET) {
         data[3] = controller_state.deadzone >> 8;
@@ -902,6 +1005,9 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             data[0] = id_unhandled;
         } else {
             dynamic_keymap_macro_set_buffer(offset, size, &data[6]);
+            if (size > 0 && offset + size == dynamic_keymap_macro_get_buffer_size() && data[5 + size] == 0) {
+                update_macro_slots_used();
+            }
         }
     } else if (data[2] >= REPLICAZERON_TITLE_COUNT) {
         data[0] = id_unhandled;
@@ -1124,6 +1230,14 @@ static void menu_open(void) {
 static void cycle_layout_mode(uint8_t layout) {
     if (layout < LAYOUT_COUNT) {
         set_layout_mode(layout, (controller_state.layoutModes[layout] + 1) % JOYSTICK_MODE_COUNT);
+    } else if (layout == LAYOUT_COUNT) {
+        set_settings_stick_mode((controller_state.settingsStickMode + 1) % SETTINGS_STICK_MODE_COUNT);
+    }
+}
+
+static void cycle_layout_display_preset(uint8_t layout) {
+    if (layout < LAYOUT_COUNT) {
+        set_layout_display_preset(layout, (controller_state.layoutDisplayPresets[layout] + 1) % OLED_LAYOUT_PRESET_COUNT);
     }
 }
 
@@ -1264,6 +1378,14 @@ static void menu_move(int8_t delta) {
     } else if (controller_state.menuState == MENU_MODE_LAYOUT) {
         int8_t next = controller_state.menuSelection + delta;
         if (next < 0) {
+            next = LAYOUT_COUNT;
+        } else if (next > LAYOUT_COUNT) {
+            next = 0;
+        }
+        controller_state.menuSelection = next;
+    } else if (controller_state.menuState == MENU_SCREEN_LAYOUT) {
+        int8_t next = controller_state.menuSelection + delta;
+        if (next < 0) {
             next = LAYOUT_COUNT - 1;
         } else if (next >= LAYOUT_COUNT) {
             next = 0;
@@ -1287,6 +1409,8 @@ static void menu_move(int8_t delta) {
             next = 0;
         }
         controller_state.menuSelection = next;
+    } else if (controller_state.menuState == MENU_DISPLAY) {
+        controller_state.menuSelection = controller_state.menuSelection == 0 ? DISPLAY_MENU_ITEM_COUNT - 1 : 0;
     } else if (controller_state.menuState == MENU_RGB_ANIMATION_BROWSER) {
         int8_t next = controller_state.menuSelection + delta;
         if (next < 0) {
@@ -1371,10 +1495,18 @@ static void menu_select(void) {
                     controller_state.menuSelection = controller_state.activeLayout;
                     break;
                 case 4:
+                    controller_state.menuState = MENU_SCREEN_LAYOUT;
+                    controller_state.menuSelection = controller_state.activeLayout;
+                    break;
+                case 5:
                     controller_state.menuState = MENU_CALIB;
                     controller_state.menuSelection = 0;
                     break;
-                case 5:
+                case 6:
+                    controller_state.menuState = MENU_DISPLAY;
+                    controller_state.menuSelection = 0;
+                    break;
+                case 7:
                     controller_state.menuState = MENU_FACTORY_RESET;
                     reset_little_held = false;
                     reset_index_held = false;
@@ -1444,6 +1576,10 @@ static void menu_select(void) {
             controller_state.layoutSelection = controller_state.menuSelection;
             controller_state.menuState = MENU_MODE;
             break;
+        case MENU_SCREEN_LAYOUT:
+            controller_state.layoutSelection = controller_state.menuSelection;
+            controller_state.menuState = MENU_SCREEN;
+            break;
         case MENU_CALIB:
             if (controller_state.menuSelection == 0) {
                 controller_state.menuState = MENU_CALIB_DEADZONE;
@@ -1472,6 +1608,9 @@ void keyboard_post_init_kb(void) {
 
     controller_state = init_state();
     load_layout_modes();
+#ifdef VIA_ENABLE
+    update_macro_slots_used();
+#endif
 #ifdef RGB_MATRIX_ENABLE
     apply_rgb_led_count();
 #endif
@@ -1635,6 +1774,16 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
+    if (record->event.pressed && keycode >= QK_MACRO_0 && keycode <= QK_MACRO_15) {
+        controller_state.lastMacro = keycode - QK_MACRO_0;
+#ifdef VIA_ENABLE
+        /* Vial can update its macro buffer without passing through the custom
+         * WebHID command. Refresh when a macro is next used so the OLED count
+         * follows changes made in either configurator. */
+        update_macro_slots_used();
+#endif
+    }
+
 #ifdef RGB_MATRIX_ENABLE
     if (controller_state.openrgbEnabled &&
         ((keycode >= QK_UNDERGLOW_TOGGLE && keycode <= RGB_MODE_TWINKLE) || IS_RGB_MATRIX_KEYCODE(keycode))) {
@@ -1659,10 +1808,12 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         } else if (controller_state.menuState == MENU_RGB_ANIMATION_SETTINGS) {
             controller_state.menuState = MENU_RGB_ANIMATION_BROWSER;
             controller_state.menuSelection = controller_state.rgbAnimationSelection;
-        } else if (controller_state.menuState == MENU_SIDE_LEDS || controller_state.menuState == MENU_FACTORY_RESET) {
+        } else if (controller_state.menuState == MENU_SIDE_LEDS || controller_state.menuState == MENU_DISPLAY || controller_state.menuState == MENU_FACTORY_RESET) {
             menu_close();
         } else if (controller_state.menuState == MENU_MODE) {
             cycle_layout_mode(controller_state.layoutSelection);
+        } else if (controller_state.menuState == MENU_SCREEN) {
+            cycle_layout_display_preset(controller_state.layoutSelection);
         } else if (controller_state.menuState == MENU_CALIB_FILTER) {
             set_filter_strength(controller_state.filterCandidate);
             controller_state.menuState = MENU_CALIB;
@@ -1766,15 +1917,23 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     } else {
                         change_side_led_source(false, false);
                     }
+                } else if (controller_state.menuState == MENU_DISPLAY) {
+                    change_display_timer(controller_state.menuSelection == 1, false);
                 } else if (controller_state.menuState == MENU_MODE_LAYOUT) {
                     controller_state.menuState = MENU_MAIN;
                     controller_state.menuSelection = 3;
                 } else if (controller_state.menuState == MENU_MODE) {
                     controller_state.menuState = MENU_MODE_LAYOUT;
                     controller_state.menuSelection = controller_state.layoutSelection;
-                } else if (controller_state.menuState == MENU_CALIB) {
+                } else if (controller_state.menuState == MENU_SCREEN_LAYOUT) {
                     controller_state.menuState = MENU_MAIN;
                     controller_state.menuSelection = 4;
+                } else if (controller_state.menuState == MENU_SCREEN) {
+                    controller_state.menuState = MENU_SCREEN_LAYOUT;
+                    controller_state.menuSelection = controller_state.layoutSelection;
+                } else if (controller_state.menuState == MENU_CALIB) {
+                    controller_state.menuState = MENU_MAIN;
+                    controller_state.menuSelection = 5;
                 } else if (controller_state.menuState == MENU_CALIB_FILTER) {
                     controller_state.filterCandidate = controller_state.filterStrength;
                     controller_state.menuState = MENU_CALIB;
@@ -1810,6 +1969,8 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     } else {
                         change_side_led_source(false, true);
                     }
+                } else if (controller_state.menuState == MENU_DISPLAY) {
+                    change_display_timer(controller_state.menuSelection == 1, true);
                 }
                 return false;
             case KC_ENT:
@@ -1822,6 +1983,8 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     controller_state.menuSelection = controller_state.rgbAnimationSelection;
                 } else if (controller_state.menuState == MENU_MODE) {
                     cycle_layout_mode(controller_state.layoutSelection);
+                } else if (controller_state.menuState == MENU_SCREEN) {
+                    cycle_layout_display_preset(controller_state.layoutSelection);
                 } else if (controller_state.menuState == MENU_CALIB_FILTER) {
                     set_filter_strength(controller_state.filterCandidate);
                     controller_state.menuState = MENU_CALIB;

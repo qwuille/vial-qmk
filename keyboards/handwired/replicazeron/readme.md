@@ -37,12 +37,21 @@ RGB lighting and both side status LEDs turn off when the USB host suspends
 during PC sleep or shutdown, then restore their normal behavior when the PC
 wakes.
 
+Live Input and Combined OLED pages refresh at 20 frames per second. This keeps
+their changing stick and key values responsive without continuously occupying
+the I2C bus and disturbing the loop-timed side-LED brightness control.
+
 ## Vial and OpenRGB
 
 This update combines the complete Replicazeron configuration with VialRGB and
 OpenRGB support. It keeps all 11 Vial layout slots, macros, editable layout
 titles, per-layout joystick modes, OLED settings, WebHID configuration, and
 normal Vial remapping.
+
+The optional Vial Key Override engine is disabled on the STM32F103 build to
+leave flash space for the Replicazeron OLED, WebHID, macro, joystick, and
+lighting features. Tap Dance remains available, along with ordinary key
+remapping, layer keys, the Vial macro engine, and all 11 layout slots.
 
 OpenRGB communicates through VialRGB on the existing 32-byte Vial Raw HID
 interface. There is no bridge program and no second OpenRGB HID interface, so
@@ -203,7 +212,11 @@ runtime switch.
 * A persistent Firmware/OpenRGB ownership setting on the OLED and WebHID page.
 * Ten independently remappable layouts plus an editable Settings tool layer.
 * Per-layout Analog, WASD, and WASD + Shift thumbstick modes.
+* Five independently selectable OLED designs for every playable layout: Input
+  monitor, Macro focus, Game status, Combined, and Minimal.
 * Editable OLED layout titles, names for Macro 0-15, deadzone, and axis filtering.
+* Persistent OLED shutdown and sleeping-logo interval controls without reducing
+  Vial's macro buffer.
 * Vial-compatible recorded macro sequences plus optional firmware-side fixed
   or randomized automatic delays between their key actions.
 * Persistent enable, brightness, active-low/active-high wiring, and independent
@@ -223,8 +236,18 @@ mapping. Tap it to advance to the next layout. Hold it for at least 500 ms to
 cycle the current layout through Joystick, WASD, and WASD + Shift modes. Each
 layout's selection is saved in EEPROM.
 
-The OLED `MODE` menu first asks which layout to edit. The same per-layout modes
-can be read and written with the standalone WebHID Control Deck.
+The OLED `MODE` menu first asks which layout to edit. Its `Settings tools`
+entry controls only the Settings layer and cycles scroll/cursor, middle-drag
+pan, Shift+middle-drag orbit, and right-drag orbit. The same separate controls
+are available in the standalone WebHID Control Deck.
+
+The OLED `SCREEN` menu similarly chooses a playable layout and cycles its
+display design. Input monitor shows live stick direction, strength, and held
+key count. Macro focus shows the last invoked macro and its assigned name. Game
+status shows macro usage and the last macro. Combined puts live input and macro
+status together; this replaces the less useful RGB-status concept. Minimal
+keeps only the layout title and input mode. The WebHID layout rows provide CSS
+previews for both the selected thumbstick mode and OLED design.
 
 Joystick profiles report the two analog HID axes. WASD and WASD + Shift
 profiles center those HID axes and translate the physical stick into keyboard
@@ -243,20 +266,24 @@ by firmware.
 
 ## Persistent configuration
 
-Vial mappings, macros, layout titles, per-layout joystick modes, calibration,
-and RGB settings are stored in EEPROM. Compiled entries are used only when the
+Vial mappings, macros, layout titles, per-layout joystick and OLED modes,
+calibration, and RGB settings are stored in EEPROM. Compiled entries are used only when the
 EEPROM is new, explicitly cleared, or its storage layout is incompatible. A
 normal firmware reflash keeps the configured values instead of replacing them
 with the hardcoded defaults. A full-chip erase performed by an external
 programmer will still erase the STM32's flash-backed EEPROM.
 
-Only the ten playable layout titles are editable. The Settings tool layer
+Only the ten playable layout titles and OLED designs are editable. The Settings tool layer
 always keeps the fixed name `Settings`, but its non-navigation keys remain
-remappable. Per-layout joystick modes, side LED
+remappable. Per-layout joystick and OLED modes, side LED
 wiring metadata, and the 16 macro names use a reserved EEPROM tail area so
 they cannot overlap Vial's dynamic keymap. Layout titles remain in Vial's
 custom EEPROM area, and WebHID selections persist
 across reconnects and firmware restarts.
+
+The OLED design uses otherwise unused bits in each existing per-layout mode
+byte, and live macro statistics are calculated from Vial's existing macro
+buffer. No macro slots or macro-buffer bytes are consumed by this feature.
 
 The first firmware containing the reserved-tail fix detects the legacy `J2` or
 `J3` metadata signature. Older builds placed those 13 metadata bytes over the
@@ -266,8 +293,9 @@ macros, and configuration. Reapply custom mappings for those seven positions
 from a previous Vial backup if necessary.
 
 The WebHID control deck reads the device immediately after connecting and uses
-a responsive, image-free CSS preview that animates the selected firmware
-effect across the 11-LED strip. Individual changes are written live
+responsive, image-free CSS previews for the selected stick mode, OLED design,
+and firmware effect across the 11-LED strip. Its visual macro editor includes
+a clickable CSS keyboard for quickly appending familiar keys. Individual changes are written live
 after a short debounce while the device is connected. **Write all** remains
 available for imported settings and recovery.
 

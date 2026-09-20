@@ -68,6 +68,7 @@ enum kb_keycodes {
 #    define REPLICAZERON_TITLE_COUNT 11
 #    define REPLICAZERON_TITLE_LENGTH 13
 extern char replicazeron_titles[REPLICAZERON_TITLE_COUNT][REPLICAZERON_TITLE_LENGTH];
+void replicazeron_read_macro_name(uint8_t macro, char name[REPLICAZERON_TITLE_LENGTH]);
 #endif
 
 #ifdef RGB_MATRIX_ENABLE

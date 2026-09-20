@@ -18,6 +18,12 @@
 
 #define THUMBSTICK_DEBUG
 
+/* Runtime-configurable idle handling is implemented in common/oled.c. */
+#define OLED_TIMEOUT 0
+/* Live input screens otherwise dirty the display on nearly every matrix loop,
+ * starving the loop-timed side-LED PWM with continuous I2C transfers. */
+#define OLED_UPDATE_INTERVAL 50
+
 /* joystick configuration */
 #define JOYSTICK_BUTTON_COUNT 0
 #define JOYSTICK_AXIS_COUNT 2

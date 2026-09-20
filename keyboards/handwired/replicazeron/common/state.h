@@ -19,13 +19,22 @@
 #include <stdint.h>
 
 #define LAYOUT_COUNT 10
-#define MAIN_MENU_ITEM_COUNT 6
+#define MAIN_MENU_ITEM_COUNT 8
 #define RGB_TYPE_COUNT 3
 #define RGB_ANIMATION_COUNT 11
 #define CALIBRATION_ITEM_COUNT 2
 #define SIDE_LED_MENU_ITEM_COUNT 5
+#define DISPLAY_MENU_ITEM_COUNT 2
 #define REPLICAZERON_RGB_LED_COUNT_DEFAULT 11
 #define REPLICAZERON_RGB_LED_COUNT_MAX 32
+#define REPLICAZERON_OLED_OFF_DEFAULT 1
+#define REPLICAZERON_LOGO_INTERVAL_DEFAULT 2
+#define REPLICAZERON_DISPLAY_TIMER_DISABLED 15
+#define REPLICAZERON_DISPLAY_TIMER_CONFIG(off, logo) (((logo) << 4) | (off))
+#define REPLICAZERON_OLED_OFF_INDEX(config) ((config) & 0x0F)
+#define REPLICAZERON_LOGO_INTERVAL_INDEX(config) ((config) >> 4)
+#define OLED_LAYOUT_PRESET_COUNT 5
+#define REPLICAZERON_LAST_MACRO_NONE UINT8_MAX
 
 typedef enum {
     MENU_NONE = 0,
@@ -40,9 +49,12 @@ typedef enum {
     MENU_SIDE_LEDS,
     MENU_MODE_LAYOUT,
     MENU_MODE,
+    MENU_SCREEN_LAYOUT,
+    MENU_SCREEN,
     MENU_CALIB,
     MENU_CALIB_DEADZONE,
     MENU_CALIB_FILTER,
+    MENU_DISPLAY,
     MENU_FACTORY_RESET
 } menu_state_t;
 
@@ -89,6 +101,14 @@ typedef enum {
 } settings_stick_mode_t;
 
 typedef enum {
+    OLED_LAYOUT_INPUT = 0,
+    OLED_LAYOUT_MACRO,
+    OLED_LAYOUT_GAME,
+    OLED_LAYOUT_COMBINED,
+    OLED_LAYOUT_MINIMAL
+} oled_layout_preset_t;
+
+typedef enum {
     SIDE_LED_SOURCE_OFF = 0,
     SIDE_LED_SOURCE_STICK,
     SIDE_LED_SOURCE_BUTTONS,
@@ -112,7 +132,11 @@ typedef struct {
     /* EEPROM stores exactly one byte per layout. Do not use the enum type
      * here: ARM enums are wider than one byte unless explicitly packed. */
     uint8_t layoutModes[LAYOUT_COUNT];
+    uint8_t layoutDisplayPresets[LAYOUT_COUNT];
     uint8_t settingsStickMode;
+    uint8_t displayTimerConfig;
+    uint8_t lastMacro;
+    uint8_t macroSlotsUsed;
     rgb_animation_id_t rgbAnimationSelection;
     bool rgbStaticSelected;
     bool openrgbEnabled;
