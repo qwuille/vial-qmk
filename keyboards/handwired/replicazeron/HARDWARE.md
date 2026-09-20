@@ -108,8 +108,8 @@ install a missing bootloader.
 
 The saved **Addressable LEDs** setting accepts 1-32 pixels and defaults to 11.
 It changes how many physical strip pixels firmware effects and VialRGB expose.
-Two additional virtual VialRGB endpoints follow the strip and drive the left
-and right monochrome indicators; they are not addressable pixels on the strip.
+The left and right monochrome side indicators are separate GPIO outputs and are
+not exposed to VialRGB or OpenRGB.
 
 Changing the runtime count cannot change the electrical protocol. Recompile if
 the installed pixels require RGBW data, a color order other than GRB, or a rate

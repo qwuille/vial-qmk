@@ -161,7 +161,7 @@ The two side status LEDs have a separate persistent `SIDELED` menu. `Enabled`
 turns both indicators on or off, and `Bright` sets their shared maximum
 brightness in 15 steps. `Left LED` and `Right LED` independently select Off, stick
 strength, buttons held, combined activity, always on, Caps Lock, Num Lock,
-Scroll Lock, or either of two virtual OpenRGB indicators. The defaults retain
+or Scroll Lock. The defaults retain
 the original behavior: the left LED shows stick strength and the right LED shows buttons.
 The same controls are available under **Side indicators** in the WebHID Control
 Deck; they do not change the addressable RGB strip. A short
@@ -176,23 +176,14 @@ confirmation screen; it never clears EEPROM by itself.
 OpenRGB application effects are rendered by OpenRGB and streamed through
 VialRGB Direct mode; adding those effects does not require a firmware change.
 
-The two monochrome side indicators remain separate GPIO LEDs, but firmware
-exposes two additional virtual VialRGB endpoints after the configured strip.
-With the default 11-pixel strip these are logical LEDs 12 and 13. Their
-received value/brightness drives the monochrome GPIO output; hue and saturation
-are intentionally ignored. VialRGB reports the configured strip as the first
-matrix row and the two side indicators as a second row. They remain in one
-OpenRGB zone because stock OpenRGB hardcodes one zone for VialRGB devices.
-OpenRGB writes are accepted only while the firmware RGB controller is set to
-**OpenRGB**.
-
-This makes the virtual indicators usable with OpenRGB effects and host-side
-plugins. For example, a monitoring or notification integration can flash one
-of the final two logical LEDs without joining the addressable-strip animation.
+The two monochrome side indicators remain separate GPIO LEDs controlled by
+their firmware-selected activity sources. They are not exposed to VialRGB or
+OpenRGB. OpenRGB controls only the addressable strip, and its writes are
+accepted only while the firmware RGB controller is set to **OpenRGB**.
 
 The WebHID RGB card stores an addressable LED count from 1 to 32; the default
-is 11. Firmware effects and OpenRGB expose only that many strip pixels, followed
-by the two virtual side indicators. Restart or rescan OpenRGB after changing
+is 11. Firmware effects and OpenRGB expose only that many strip pixels. Restart
+or rescan OpenRGB after changing
 the count because it reads the device topology when connecting. This build is
 for 800 kHz, GRB-order, three-channel WS2812-compatible pixels, including most
 WS2812B and compatible SK6812 RGB strips. RGBW pixels, another byte order, or a
@@ -201,8 +192,8 @@ runtime switch.
 
 ### What this update adds
 
-* VialRGB and OpenRGB control for 1-32 WS2812-compatible LEDs plus two virtual
-  side-indicator endpoints over one HID interface.
+* VialRGB and OpenRGB control for 1-32 WS2812-compatible LEDs over one HID
+  interface.
 * A persistent Firmware/OpenRGB ownership setting on the OLED and WebHID page.
 * Ten independently remappable layouts plus the reserved Settings layer.
 * Per-layout Analog, WASD, and WASD + Shift thumbstick modes.

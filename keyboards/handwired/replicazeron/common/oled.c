@@ -325,8 +325,6 @@ static const char *side_led_source_name(uint8_t source) {
         case SIDE_LED_SOURCE_CAPS_LOCK: return PSTR("Caps Lock");
         case SIDE_LED_SOURCE_NUM_LOCK: return PSTR("Num Lock");
         case SIDE_LED_SOURCE_SCROLL_LOCK: return PSTR("Scroll Lock");
-        case SIDE_LED_SOURCE_OPENRGB_1: return PSTR("OpenRGB 1");
-        case SIDE_LED_SOURCE_OPENRGB_2: return PSTR("OpenRGB 2");
         default: return PSTR("Off");
     }
 }

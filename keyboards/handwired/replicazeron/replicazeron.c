@@ -92,10 +92,6 @@ static bool bootloader_requested;
 static bool bootloader_usb_disconnect_assist;
 static uint32_t bootloader_request_started;
 
-#ifdef VIALRGB_ENABLE
-static uint8_t openrgb_side_led_levels[2];
-#endif
-
 #define REPLICAZERON_FACTORY_RESET_HOLD_MS 2000
 #define REPLICAZERON_SIDE_LED_PREVIEW_MS 1200
 #define REPLICAZERON_BOOTLOADER_DELAY_MS 500
@@ -285,37 +281,20 @@ bool vialrgb_allow_write_kb(uint8_t command) {
 }
 
 uint16_t vialrgb_get_number_leds_kb(void) {
-    return controller_state.rgbLedCount + 2;
+    return controller_state.rgbLedCount;
 }
 
 bool vialrgb_get_led_info_kb(uint16_t led, uint8_t *output) {
     uint8_t strip_count = controller_state.rgbLedCount;
-    if (led >= strip_count + 2) {
+    if (led >= strip_count) {
         return false;
     }
-    if (led < strip_count) {
-        output[0] = strip_count <= 1 ? 112 : ((uint32_t)led * 224) / (strip_count - 1);
-        output[1] = 16;
-        output[2] = LED_FLAG_UNDERGLOW;
-        output[3] = 0;
-        output[4] = led;
-    } else {
-        uint8_t side = led - strip_count;
-        output[0] = 104 + (side * 16);
-        output[1] = 48;
-        output[2] = LED_FLAG_INDICATOR;
-        output[3] = 1;
-        output[4] = side;
-    }
+    output[0] = strip_count <= 1 ? 112 : ((uint32_t)led * 224) / (strip_count - 1);
+    output[1] = 16;
+    output[2] = LED_FLAG_UNDERGLOW;
+    output[3] = 0;
+    output[4] = led;
     return true;
-}
-
-void vialrgb_set_led_kb(uint16_t led, uint8_t hue, uint8_t sat, uint8_t val) {
-    (void)hue;
-    (void)sat;
-    if (led >= controller_state.rgbLedCount && led < controller_state.rgbLedCount + 2) {
-        openrgb_side_led_levels[led - controller_state.rgbLedCount] = val;
-    }
 }
 #endif
 
@@ -727,12 +706,6 @@ static uint8_t side_led_source_level(uint8_t source, uint16_t joystick_distance,
             return host_keyboard_led_state().num_lock ? UINT8_MAX : 0;
         case SIDE_LED_SOURCE_SCROLL_LOCK:
             return host_keyboard_led_state().scroll_lock ? UINT8_MAX : 0;
-#ifdef VIALRGB_ENABLE
-        case SIDE_LED_SOURCE_OPENRGB_1:
-            return openrgb_side_led_levels[0];
-        case SIDE_LED_SOURCE_OPENRGB_2:
-            return openrgb_side_led_levels[1];
-#endif
         default:
             return 0;
     }
