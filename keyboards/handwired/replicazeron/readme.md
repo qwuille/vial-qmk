@@ -116,8 +116,10 @@ Save the OpenRGB configuration and rescan devices. Registering the VID/PID in
 OpenRGB and granting it control in the firmware are separate steps.
 OpenRGB currently auto-registers only the VialRGB devices compiled into its
 device list, so an unmodified installation needs this one-time manual entry.
-The OLED shows the VID and PID whenever OpenRGB is highlighted under
-**RGB > Controller**, and the WebHID RGB card includes the same micro-guide.
+After OpenRGB is confirmed under **RGB > Controller**, the OLED shows an
+OpenRGB-active confirmation page with the VID and PID. Merely highlighting the
+OpenRGB choice leaves the selector visible. The WebHID RGB card includes the
+same setup micro-guide.
 
 OpenRGB only takes ownership of the LEDs after **OpenRGB** is selected under
 **RGB > Controller** on the OLED, or under **RGB lighting > Controller** in the

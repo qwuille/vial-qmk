@@ -238,19 +238,19 @@ static void draw_rgb_type_menu(uint8_t selection) {
 }
 
 static void draw_rgb_control_menu(uint8_t selection) {
-    if (selection == 1) {
-        oled_write_ln_P(PSTR("OPENRGB / VIALRGB"), false);
-        oled_write_ln_P(PSTR("Manual device:"), false);
-        oled_write_ln_P(PSTR("VID 4142"), false);
-        oled_write_ln_P(PSTR("PID 2305"), false);
-        return;
-    }
     oled_write_ln_P(PSTR("RGB CONTROL"), false);
     oled_write_P(selection == 0 ? PSTR(">") : PSTR(" "), false);
     oled_write_ln_P(PSTR("Firmware"), false);
     oled_write_P(selection == 1 ? PSTR(">") : PSTR(" "), false);
     oled_write_ln_P(PSTR("OpenRGB"), false);
     oled_write_ln_P(PSTR("Menu: Select"), false);
+}
+
+static void draw_openrgb_info(void) {
+    oled_write_ln_P(PSTR("OPENRGB ACTIVE"), false);
+    oled_write_ln_P(PSTR("VID 4142"), false);
+    oled_write_ln_P(PSTR("PID 2305"), false);
+    oled_write_ln_P(PSTR("Menu: Back"), false);
 }
 
 static void draw_rgb_animation_browser(uint8_t selection) {
@@ -514,6 +514,9 @@ void draw_oled(controller_state_t controller_state) {
                 return;
             case MENU_RGB_CONTROL:
                 draw_rgb_control_menu(controller_state.menuSelection);
+                return;
+            case MENU_RGB_OPENRGB_INFO:
+                draw_openrgb_info();
                 return;
             case MENU_RGB_STATIC:
                 oled_write_ln_P(PSTR("STATIC"), false);

@@ -1086,6 +1086,10 @@ static void menu_select(void) {
             break;
         case MENU_RGB_CONTROL:
             set_openrgb_enabled(controller_state.menuSelection == 1);
+            controller_state.menuState = controller_state.openrgbEnabled ? MENU_RGB_OPENRGB_INFO : MENU_RGB_TYPE;
+            controller_state.menuSelection = 0;
+            break;
+        case MENU_RGB_OPENRGB_INFO:
             controller_state.menuState = MENU_RGB_TYPE;
             controller_state.menuSelection = 0;
             break;
@@ -1388,6 +1392,9 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     controller_state.menuState = MENU_MAIN;
                     controller_state.menuSelection = 1;
                 } else if (controller_state.menuState == MENU_RGB_CONTROL) {
+                    controller_state.menuState = MENU_RGB_TYPE;
+                    controller_state.menuSelection = 0;
+                } else if (controller_state.menuState == MENU_RGB_OPENRGB_INFO) {
                     controller_state.menuState = MENU_RGB_TYPE;
                     controller_state.menuSelection = 0;
                 } else if (controller_state.menuState == MENU_RGB_ANIMATION_BROWSER) {
