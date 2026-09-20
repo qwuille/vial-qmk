@@ -57,9 +57,26 @@ documented core integrations, not every inherited keyboard definition.
 
 ## Documentation
 
+### Qwuille firmware
+
 - [Complete component, pin, power, and compatibility guide](keyboards/handwired/replicazeron/HARDWARE.md)
 - [Firmware features, OpenRGB, WebHID, DFU, wiring, and usage](keyboards/handwired/replicazeron/readme.md)
 - [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
+
+### Hardware, models, and earlier build resources
+
+- [Incedius Replicazeron](https://github.com/incedius/replicazeron) for
+  Incedius's modified parts, build notes, bill of materials, and assembly
+  information.
+- [9R Replicazeron](https://github.com/9R/replicazeron) for 9R's modified
+  model files and earlier project documentation.
+- [9R Replicazeron schematics](https://github.com/9R/replicazeron_schematics)
+  for the earlier controller wiring diagrams.
+
+Those external resources describe their respective builds. Pin assignments,
+LED count, bootloader behavior, and other electrical details can differ from
+Qwuille's current firmware target, so use the firmware hardware guide above for
+the configuration implemented by this branch.
 
 The standalone [Replicazeron WebHID Control Deck](https://github.com/qwuille/replicazeron_webhid)
 is maintained in its own repository and can be opened at
