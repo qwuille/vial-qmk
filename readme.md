@@ -1,8 +1,8 @@
 # Replicazeron firmware
 
 This repository is Qwuille's maintained Vial/QMK firmware for the Replicazeron
-one-handed game controller. It contains the firmware source, WebHID control
-deck, build instructions, and firmware-specific hardware information.
+one-handed game controller. It contains the firmware source, WebHID protocol
+integration, build instructions, and firmware-specific hardware information.
 
 Printable models are deliberately not distributed here. Builders looking for
 existing models and the earlier hardware documentation should use the separate
@@ -45,6 +45,16 @@ qmk compile -kb handwired/replicazeron/stm32f103 -km vial
 
 The legacy Pro Micro and experimental RP2040 definitions are not release
 targets for the complete feature set documented here.
+
+## Branches and maintenance scope
+
+- **`vial`** is Qwuille's current, default, maintained Replicazeron firmware.
+- **`vial-incedius`** preserves the Incedius fork state from which this work
+  was developed; it is retained for history and comparison.
+
+The repository retains the wider Vial-QMK source tree so upstream updates stay
+mergeable. Qwuille maintains the Replicazeron target and its explicitly
+documented core integrations, not every inherited keyboard definition.
 
 ## Documentation
 

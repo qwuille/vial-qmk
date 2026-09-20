@@ -3,7 +3,7 @@
     "keyboard_name": "Replicazeron",
     "maintainer": "Qwuille",
     "diode_direction": "COL2ROW",
-    "url": "https://github.com/qwuille/vial-qmk/tree/replicazeron/keyboards/handwired/replicazeron",
+    "url": "https://github.com/qwuille/vial-qmk/tree/vial/keyboards/handwired/replicazeron",
     "usb": {
         "pid": "0x2305",
         "vid": "0x4142"
