@@ -53,10 +53,10 @@ targets for the complete feature set documented here.
 - [Planned work](keyboards/handwired/replicazeron/ROADMAP.md)
 - [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
 
-The WebHID page is
-[`keyboards/handwired/replicazeron/title-editor.html`](keyboards/handwired/replicazeron/title-editor.html).
-Serve it over HTTPS or localhost and open it in a WebHID/WebUSB-capable Chromium
-browser such as Chrome or Edge.
+The standalone [Replicazeron WebHID Control Deck](https://github.com/qwuille/replicazeron_webhid)
+is maintained in its own repository and can be opened at
+**https://qwuille.github.io/replicazeron_webhid/**. Use a WebHID/WebUSB-capable
+Chromium browser such as Chrome or Edge.
 
 ## OpenRGB registration
 

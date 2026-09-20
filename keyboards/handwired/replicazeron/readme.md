@@ -61,8 +61,9 @@ STM32duino bootloader (`1EAF:0003`, alternate interface 2). Version 0.1.8 or
 later must first be installed with the normal command-line method; later builds
 can then request bootloader mode directly from the page.
 
-Serve `title-editor.html` over HTTPS or localhost in Chrome or Edge, connect
-the running Replicazeron, and use the numbered controls under **Firmware
+Open the standalone
+[Replicazeron WebHID Control Deck](https://qwuille.github.io/replicazeron_webhid/)
+in Chrome or Edge, connect the running Replicazeron, and use the numbered controls under **Firmware
 update**. Select a Replicazeron `.bin`, enter bootloader mode, explicitly grant
 access to the bootloader, and confirm the flash. The page validates the image
 size and STM32 vector table before enabling the write button. This experimental
@@ -119,8 +120,8 @@ The OLED shows the VID and PID whenever OpenRGB is highlighted under
 **RGB > Controller**, and the WebHID RGB card includes the same micro-guide.
 
 OpenRGB only takes ownership of the LEDs after **OpenRGB** is selected under
-**RGB > Controller** on the OLED, or under **RGB lighting > Controller** in
-`title-editor.html`. The selection is stored in EEPROM:
+**RGB > Controller** on the OLED, or under **RGB lighting > Controller** in the
+[WebHID Control Deck](https://qwuille.github.io/replicazeron_webhid/). The selection is stored in EEPROM:
 
 * **Firmware** runs the saved onboard RGB Matrix effect and ignores VialRGB
   lighting writes. Vial remapping and configuration continue to work.
@@ -160,8 +161,8 @@ brightness in 15 steps. `Left LED` and `Right LED` independently select Off, sti
 strength, buttons held, combined activity, always on, Caps Lock, Num Lock,
 Scroll Lock, or either of two virtual OpenRGB indicators. The defaults retain
 the original behavior: the left LED shows stick strength and the right LED shows buttons.
-The same controls are available under **Side indicators** in
-`title-editor.html`; they do not change the addressable RGB strip. A short
+The same controls are available under **Side indicators** in the WebHID Control
+Deck; they do not change the addressable RGB strip. A short
 full-brightness preview follows a setting change so its result is visible even
 when the selected source is inactive.
 
@@ -222,7 +223,7 @@ cycle the current layout through Joystick, WASD, and WASD + Shift modes. Each
 layout's selection is saved in EEPROM.
 
 The OLED `MODE` menu first asks which layout to edit. The same per-layout modes
-can be read and written with `title-editor.html` over WebHID.
+can be read and written with the standalone WebHID Control Deck.
 
 Joystick profiles report the two analog HID axes. WASD and WASD + Shift
 profiles center those HID axes and translate the physical stick into keyboard
