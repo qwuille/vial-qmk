@@ -59,7 +59,6 @@ documented core integrations, not every inherited keyboard definition.
 
 - [Complete component, pin, power, and compatibility guide](keyboards/handwired/replicazeron/HARDWARE.md)
 - [Firmware features, OpenRGB, WebHID, DFU, wiring, and usage](keyboards/handwired/replicazeron/readme.md)
-- [Planned work](keyboards/handwired/replicazeron/ROADMAP.md)
 - [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
 
 The standalone [Replicazeron WebHID Control Deck](https://github.com/qwuille/replicazeron_webhid)
