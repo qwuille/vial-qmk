@@ -7,8 +7,7 @@ integration, build instructions, and firmware-specific hardware information.
 Printable models are deliberately not distributed here. Builders looking for
 existing models and the earlier hardware documentation should use the separate
 [Incedius Replicazeron](https://github.com/incedius/replicazeron) and
-[9R Replicazeron](https://github.com/9R/replicazeron) projects. Future models
-created by Qwuille may be added here and will be identified as such.
+[9R Replicazeron](https://github.com/9R/replicazeron) projects.
 
 ## Highlights
 
