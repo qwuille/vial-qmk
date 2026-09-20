@@ -181,19 +181,19 @@ static const char *get_layout_name(uint8_t layout) {
         case LAYOUT_3:
             return "Misc";
         case LAYOUT_4:
-            return "Empty 4";
+            return "Empty 3";
         case LAYOUT_5:
-            return "Empty 5";
+            return "Empty 4";
         case LAYOUT_6:
-            return "Empty 6";
+            return "Empty 5";
         case LAYOUT_7:
-            return "Empty 7";
+            return "Empty 6";
         case LAYOUT_8:
-            return "Empty 8";
+            return "Empty 7";
         case LAYOUT_9:
-            return "Empty 9";
+            return "Empty 8";
         case LAYOUT_10:
-            return "Empty 10";
+            return "Empty 9";
         default:
             return "UNKNOWN";
     }

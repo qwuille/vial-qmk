@@ -18,7 +18,6 @@
         "animations": {
             "breathing": true,
             "cycle_all": true,
-            "cycle_left_right": true,
             "cycle_spiral": true,
             "hue_pendulum": true,
             "hue_wave": true,

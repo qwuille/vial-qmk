@@ -27,6 +27,7 @@ controller_state_t init_state(void) {
         .activeLayout = LAYOUT_1,
         .layoutSelection = LAYOUT_1,
         .layoutModes = {JOYSTICK_MODE_ANALOG},
+        .settingsStickMode = SETTINGS_STICK_MOUSE,
         .rgbAnimationSelection = RGB_ANIMATION_BREATHING,
         .rgbStaticSelected = false,
         .openrgbEnabled = false,

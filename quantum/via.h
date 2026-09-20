@@ -155,6 +155,9 @@ void via_set_device_indication(uint8_t value);
 // Called by QMK core to process VIA-specific keycodes.
 bool process_record_via(uint16_t keycode, keyrecord_t *record);
 
+/** Keyboard hook for temporarily ignoring a complete Raw HID request. */
+bool via_should_process_command_kb(const uint8_t *data, uint8_t length);
+
 // These are made external so that keyboard level custom value handlers can use them.
 #if defined(BACKLIGHT_ENABLE)
 void via_qmk_backlight_command(uint8_t *data, uint8_t length);

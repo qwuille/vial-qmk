@@ -1,7 +1,7 @@
 {
-    "manufacturer": "9R/Incedius/Qwuille",
+    "manufacturer": "Replicazeron Community",
     "keyboard_name": "Replicazeron",
-    "maintainer": "Qwuille",
+    "maintainer": "replicazeron",
     "diode_direction": "COL2ROW",
     "url": "https://github.com/qwuille/vial-qmk/tree/vial/keyboards/handwired/replicazeron",
     "usb": {

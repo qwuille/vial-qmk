@@ -1,12 +1,12 @@
 
 # Replicazeron
 
-Firmware lineage and software credits: **9R / Incedius / Qwuille**. This fork
+Firmware lineage and software credits include **9R** and **Incedius**. This fork
 builds on Replicazeron firmware work by
 [9R](https://github.com/9R/qmk_firmware) and
 [Incedius](https://github.com/incedius/vial-qmk), with the current firmware,
 WebHID, lighting, and documentation additions maintained by
-[Qwuille](https://github.com/qwuille/vial-qmk). These credits describe software
+[the current firmware repository](https://github.com/qwuille/vial-qmk). These credits describe software
 stewardship and community additions; they are not a claim that these
 maintainers designed the original commercial hardware that inspired the
 project. Printable models are not distributed by this firmware repository.
@@ -110,7 +110,7 @@ controller. In OpenRGB, open **Settings > QMK VialRGB Devices** and add:
 
 | Name | USB VID | USB PID |
 |------|---------|---------|
-| 9R/Incedius/Qwuille Replicazeron | `4142` | `2305` |
+| Replicazeron | `4142` | `2305` |
 
 Save the OpenRGB configuration and rescan devices. Registering the VID/PID in
 OpenRGB and granting it control in the firmware are separate steps.
@@ -134,9 +134,15 @@ Switching back to **Firmware** restores the saved onboard effect. There is no
 application detection, heartbeat, automatic timeout, or controller handoff.
 The user explicitly chooses which controller owns the LEDs.
 
-Opening or closing Vial requires no mode switch: its HID interface remains
-available in both controller states. OpenRGB can discover the device in either
-state, although its lighting writes are accepted only in OpenRGB mode.
+Vial's HID protocol remains available in both controller states. Mapping and
+WebHID configuration traffic temporarily receives priority over VialRGB:
+lighting packets are ignored without a reply, current colors remain visible,
+and OpenRGB communication resumes after five seconds without configuration
+traffic. This prevents most cross-application reply collisions. Closing
+OpenRGB before opening Vial remains the most conservative option because both
+applications still share one Raw HID interface. OpenRGB can discover the
+device in either state, although its lighting writes are accepted only in
+OpenRGB mode.
 
 ### Firmware RGB effects
 
@@ -195,9 +201,11 @@ runtime switch.
 * VialRGB and OpenRGB control for 1-32 WS2812-compatible LEDs over one HID
   interface.
 * A persistent Firmware/OpenRGB ownership setting on the OLED and WebHID page.
-* Ten independently remappable layouts plus the reserved Settings layer.
+* Ten independently remappable layouts plus an editable Settings tool layer.
 * Per-layout Analog, WASD, and WASD + Shift thumbstick modes.
-* Editable OLED layout titles, deadzone, and axis filtering.
+* Editable OLED layout titles, names for Macro 0-15, deadzone, and axis filtering.
+* Vial-compatible recorded macro sequences plus optional firmware-side fixed
+  or randomized automatic delays between their key actions.
 * Persistent enable, brightness, active-low/active-high wiring, and independent
   signal-source controls for both side LEDs on the OLED and WebHID page.
 * A two-button, two-second factory-reset confirmation on the OLED.
@@ -223,6 +231,16 @@ profiles center those HID axes and translate the physical stick into keyboard
 input instead, avoiding simultaneous joystick movement in games that listen to
 both device types.
 
+On Settings, the thumbstick scrolls horizontally and vertically by default and
+its analog game-controller axes are centered. Scroll rate follows stick
+strength. The default Settings mouse-toggle key switches between scrolling and
+regular cursor movement until Settings is left; cursor speed also follows stick
+strength. The default finger keys provide cut/copy/paste, undo/redo, save,
+find, browser back/forward, tabs, mouse buttons, and common navigation.
+Those finger keys remain remappable. The five-way D-pad is reserved for OLED
+navigation while the menu is open, and the physical layout key remains owned
+by firmware.
+
 ## Persistent configuration
 
 Vial mappings, macros, layout titles, per-layout joystick modes, calibration,
@@ -232,10 +250,20 @@ normal firmware reflash keeps the configured values instead of replacing them
 with the hardcoded defaults. A full-chip erase performed by an external
 programmer will still erase the STM32's flash-backed EEPROM.
 
-Only the ten playable layout titles are editable. The reserved Settings layer
-always keeps the fixed name `Settings`. Per-layout joystick modes share the
-same Vial custom EEPROM area as those titles so WebHID selections persist
+Only the ten playable layout titles are editable. The Settings tool layer
+always keeps the fixed name `Settings`, but its non-navigation keys remain
+remappable. Per-layout joystick modes, side LED
+wiring metadata, and the 16 macro names use a reserved EEPROM tail area so
+they cannot overlap Vial's dynamic keymap. Layout titles remain in Vial's
+custom EEPROM area, and WebHID selections persist
 across reconnects and firmware restarts.
+
+The first firmware containing the reserved-tail fix detects the legacy `J2` or
+`J3` metadata signature. Older builds placed those 13 metadata bytes over the
+start of Layout 0, so migration restores the affected first seven key
+positions from the compiled defaults while preserving the remaining layouts,
+macros, and configuration. Reapply custom mappings for those seven positions
+from a previous Vial backup if necessary.
 
 The WebHID control deck reads the device immediately after connecting and uses
 a responsive, image-free CSS preview that animates the selected firmware
@@ -250,6 +278,15 @@ live brightness preview; Left/Right edits the selected value and Menu exits.
 ## Supported MCUs
 
 Currently configs for STM32F103 and atmega32U4 are available, but STM32 is recommended, since the atmega may run out of flash with all features enabled.
+
+The maintained STM32F103 Vial build disables QMK's Caps Word, Magic, Layer
+Lock, Grave Escape, and Space Cadet subsystems to preserve flash for the
+controller-specific features. Grave Escape and Space Cadet are compact-keyboard
+conveniences rather than game-controller functions: Grave Escape combines
+Escape with grave/tilde behavior, while Space Cadet makes tapped Shift keys
+produce parentheses. Their Vial keycodes are therefore unavailable in this
+firmware. Ordinary Escape, grave, Shift, and parenthesis keycodes continue to
+work normally.
 
 With minor adjustments to Pinconfig it should be possible to use other MCUs that are supported by QMK
 

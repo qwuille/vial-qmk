@@ -60,7 +60,8 @@ enum kb_keycodes {
     M_DWN,
     M_L,
     M_R,
-    M_SEL
+    M_SEL,
+    SETTINGS_MOUSE_TOGGLE
 };
 
 #ifdef VIA_ENABLE

@@ -1,4 +1,4 @@
-/* Copyright 2026 Qwuille
+/* Copyright 2026 Replicazeron contributors
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 

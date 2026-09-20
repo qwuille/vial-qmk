@@ -18,6 +18,9 @@
 #include "usb_util.h"
 #include "eeconfig.h"
 #include "raw_hid.h"
+#ifdef MOUSEKEY_ENABLE
+#    include "mousekey.h"
+#endif
 #ifdef JOYSTICK_ENABLE
 #    include "analog.h"
 #endif
@@ -27,6 +30,7 @@
 #endif
 #ifdef VIA_ENABLE
 #    include "eeprom.h"
+#    include "keymap_introspection.h"
 #    include "via.h"
 #    include "quantum/nvm/eeprom/nvm_eeprom_eeconfig_internal.h"
 #    include "quantum/nvm/eeprom/nvm_eeprom_via_internal.h"
@@ -77,6 +81,8 @@ static rgb_animation_id_t current_rgb_animation(void);
 #define REPLICAZERON_DPAD_LEFT_COL 4
 #define REPLICAZERON_DPAD_UP_ROW 4
 #define REPLICAZERON_DPAD_UP_COL 4
+#define REPLICAZERON_SETTINGS_MOUSE_TOGGLE_ROW 4
+#define REPLICAZERON_SETTINGS_MOUSE_TOGGLE_COL 3
 #define REPLICAZERON_SIDE_LED_PREVIEW_DISTANCE 724
 #define REPLICAZERON_SIDE_LED_MIN_LEVEL 20
 #define REPLICAZERON_SIDE_LED_SOURCE_SHIFT 2
@@ -91,20 +97,63 @@ static bool side_led_preview_requested;
 static bool bootloader_requested;
 static bool bootloader_usb_disconnect_assist;
 static uint32_t bootloader_request_started;
+#ifdef VIA_ENABLE
+static bool configuration_hid_active;
+static uint32_t configuration_hid_timer;
+#endif
+#ifdef MOUSEKEY_ENABLE
+static bool settings_mouse_middle;
+static bool settings_mouse_button_right;
+static bool settings_mouse_shift;
+static bool settings_mouse_cursor_mode;
+static bool settings_mouse_movement_active;
+static uint16_t settings_mouse_report_timer;
+#endif
 
 #define REPLICAZERON_FACTORY_RESET_HOLD_MS 2000
 #define REPLICAZERON_SIDE_LED_PREVIEW_MS 1200
 #define REPLICAZERON_BOOTLOADER_DELAY_MS 500
+#define REPLICAZERON_STICK_MAX_DISTANCE 724
+#define REPLICAZERON_CURSOR_REPORT_INTERVAL_MS 16
+#define REPLICAZERON_CURSOR_MAX_STEP 16
+#define REPLICAZERON_SCROLL_SLOW_INTERVAL_MS 140
+#define REPLICAZERON_SCROLL_FAST_INTERVAL_MS 24
 
 #ifdef VIA_ENABLE
 #    define REPLICAZERON_TITLE_SIGNATURE_SIZE 2
 #    define REPLICAZERON_TITLE_STORAGE_OFFSET REPLICAZERON_TITLE_SIGNATURE_SIZE
 #    define REPLICAZERON_TITLE_STORAGE_SIZE (LAYOUT_COUNT * REPLICAZERON_TITLE_LENGTH)
-#    define REPLICAZERON_MODE_STORAGE_OFFSET (REPLICAZERON_TITLE_STORAGE_OFFSET + REPLICAZERON_TITLE_STORAGE_SIZE)
+#    define REPLICAZERON_LEGACY_MODE_STORAGE_ADDR (VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_TITLE_STORAGE_OFFSET + REPLICAZERON_TITLE_STORAGE_SIZE)
+#    define REPLICAZERON_LEGACY_MODE_SIGNATURE_ADDR (REPLICAZERON_LEGACY_MODE_STORAGE_ADDR + LAYOUT_COUNT)
+#    define REPLICAZERON_LEGACY_SIDE_LED_POLARITY_ADDR (REPLICAZERON_LEGACY_MODE_SIGNATURE_ADDR + 2)
+#    define REPLICAZERON_LEGACY_OVERLAP_SIZE 13
+#    define REPLICAZERON_METADATA_SIGNATURE_OFFSET 0
+#    define REPLICAZERON_METADATA_SIGNATURE_SIZE 2
+#    define REPLICAZERON_MODE_STORAGE_OFFSET (REPLICAZERON_METADATA_SIGNATURE_OFFSET + REPLICAZERON_METADATA_SIGNATURE_SIZE)
 #    define REPLICAZERON_MODE_STORAGE_SIZE LAYOUT_COUNT
-#    define REPLICAZERON_MODE_SIGNATURE_OFFSET (REPLICAZERON_MODE_STORAGE_OFFSET + REPLICAZERON_MODE_STORAGE_SIZE)
-#    define REPLICAZERON_MODE_SIGNATURE_SIZE 2
-#    define REPLICAZERON_SIDE_LED_POLARITY_OFFSET (REPLICAZERON_MODE_SIGNATURE_OFFSET + REPLICAZERON_MODE_SIGNATURE_SIZE)
+#    define REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET (REPLICAZERON_MODE_STORAGE_OFFSET + REPLICAZERON_MODE_STORAGE_SIZE)
+#    define REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET (REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET + 1)
+#    define REPLICAZERON_SIDE_LED_POLARITY_OFFSET (REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET + 1)
+#    define REPLICAZERON_MACRO_NAME_COUNT 16
+#    define REPLICAZERON_MACRO_NAMES_OFFSET (REPLICAZERON_SIDE_LED_POLARITY_OFFSET + 1)
+#    define REPLICAZERON_MACRO_NAMES_SIZE (REPLICAZERON_MACRO_NAME_COUNT * REPLICAZERON_TITLE_LENGTH)
+#    define REPLICAZERON_SETTINGS_STICK_MODE_OFFSET (REPLICAZERON_MACRO_NAMES_OFFSET + REPLICAZERON_MACRO_NAMES_SIZE)
+#    define REPLICAZERON_CORE_METADATA_SIZE 224
+#    define REPLICAZERON_MACRO_TIMING_SIZE (REPLICAZERON_MACRO_NAME_COUNT * sizeof(macro_timing_t))
+#    ifndef REPLICAZERON_METADATA_EEPROM_SIZE
+#        define REPLICAZERON_METADATA_EEPROM_SIZE 288
+#    endif
+#    define REPLICAZERON_METADATA_EEPROM_ADDR (TOTAL_EEPROM_BYTE_COUNT - REPLICAZERON_CORE_METADATA_SIZE)
+#    define REPLICAZERON_MACRO_TIMING_EEPROM_ADDR (TOTAL_EEPROM_BYTE_COUNT - REPLICAZERON_METADATA_EEPROM_SIZE)
+typedef struct {
+    uint16_t minimum;
+    uint16_t maximum;
+} macro_timing_t;
+static macro_timing_t macro_timings[REPLICAZERON_MACRO_NAME_COUNT];
+STATIC_ASSERT(REPLICAZERON_SETTINGS_STICK_MODE_OFFSET + 1 <= REPLICAZERON_CORE_METADATA_SIZE,
+              "Replicazeron metadata exceeds its reserved EEPROM tail");
+STATIC_ASSERT(REPLICAZERON_MACRO_TIMING_EEPROM_ADDR + REPLICAZERON_MACRO_TIMING_SIZE <= REPLICAZERON_METADATA_EEPROM_ADDR,
+              "Replicazeron macro timing metadata overlaps core metadata");
 #endif
 
 static void release_wasd_keys(void) {
@@ -118,6 +167,91 @@ static void release_wasd_keys(void) {
 #endif
 }
 
+#ifdef MOUSEKEY_ENABLE
+static void set_settings_mouse_key(bool *current, bool next, uint8_t keycode) {
+    if (*current == next) {
+        return;
+    }
+    *current = next;
+    if (next) {
+        mousekey_on(keycode);
+    } else {
+        mousekey_off(keycode);
+    }
+}
+
+static uint8_t settings_mouse_strength(uint16_t distance) {
+    uint16_t deadzone = controller_state.deadzone;
+    if (distance <= deadzone) {
+        return 0;
+    }
+
+    uint16_t range = deadzone < REPLICAZERON_STICK_MAX_DISTANCE ? REPLICAZERON_STICK_MAX_DISTANCE - deadzone : 1;
+    uint16_t offset = MIN(distance - deadzone, range);
+    return (uint8_t)(((uint32_t)offset * UINT8_MAX) / range);
+}
+
+static void send_settings_mouse_movement(bool up, bool down, bool left, bool right, uint8_t strength, bool cursor_mode) {
+    uint16_t interval = REPLICAZERON_CURSOR_REPORT_INTERVAL_MS;
+    if (!cursor_mode) {
+        interval = REPLICAZERON_SCROLL_SLOW_INTERVAL_MS -
+                   ((uint32_t)strength * (REPLICAZERON_SCROLL_SLOW_INTERVAL_MS - REPLICAZERON_SCROLL_FAST_INTERVAL_MS)) / UINT8_MAX;
+    }
+
+    if (settings_mouse_movement_active && timer_elapsed(settings_mouse_report_timer) < interval) {
+        return;
+    }
+
+    settings_mouse_movement_active = true;
+    settings_mouse_report_timer = timer_read();
+
+    report_mouse_t report = mousekey_get_report();
+    report.x = 0;
+    report.y = 0;
+    report.v = 0;
+    report.h = 0;
+
+    if (cursor_mode) {
+        int8_t step = 1 + ((uint16_t)strength * (REPLICAZERON_CURSOR_MAX_STEP - 1)) / UINT8_MAX;
+        report.x = right ? step : left ? -step : 0;
+        report.y = down ? step : up ? -step : 0;
+    } else {
+        report.h = right ? 1 : left ? -1 : 0;
+        report.v = up ? 1 : down ? -1 : 0;
+    }
+
+    host_mouse_send(&report);
+}
+
+static void update_settings_mouse(void) {
+    bool active = controller_state.highestActiveLayer == _SETTINGS && thumbstick_polar_position.distance >= controller_state.deadzone;
+    uint16_t angle = thumbstick_polar_position.angle;
+    bool up = active && (update_keystate(0, 90, angle) || update_keystate(315, 360, angle));
+    bool left = active && update_keystate(45, 181, angle);
+    bool down = active && update_keystate(135, 270, angle);
+    bool right = active && update_keystate(225, 359, angle);
+
+    bool scroll_mode = controller_state.settingsStickMode == SETTINGS_STICK_MOUSE && !settings_mouse_cursor_mode;
+    if (active) {
+        send_settings_mouse_movement(up, down, left, right, settings_mouse_strength(thumbstick_polar_position.distance), !scroll_mode);
+    } else {
+        settings_mouse_movement_active = false;
+    }
+
+    set_settings_mouse_key(&settings_mouse_middle, active && (controller_state.settingsStickMode == SETTINGS_STICK_MIDDLE_DRAG || controller_state.settingsStickMode == SETTINGS_STICK_SHIFT_MIDDLE_DRAG), QK_MOUSE_BUTTON_3);
+    set_settings_mouse_key(&settings_mouse_button_right, active && controller_state.settingsStickMode == SETTINGS_STICK_RIGHT_DRAG, QK_MOUSE_BUTTON_2);
+    bool shift = active && controller_state.settingsStickMode == SETTINGS_STICK_SHIFT_MIDDLE_DRAG;
+    if (settings_mouse_shift != shift) {
+        settings_mouse_shift = shift;
+        shift ? register_code(KC_LSFT) : unregister_code(KC_LSFT);
+    }
+
+    if (controller_state.highestActiveLayer != _SETTINGS) {
+        settings_mouse_cursor_mode = false;
+    }
+}
+#endif
+
 static void apply_layout_mode(uint8_t layout) {
     if (layout >= LAYOUT_COUNT) {
         return;
@@ -127,6 +261,56 @@ static void apply_layout_mode(uint8_t layout) {
     controller_state.wasdMode = controller_state.layoutModes[layout] != JOYSTICK_MODE_ANALOG;
     controller_state.wasdShiftMode = controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD_SHIFT;
 }
+
+#ifdef VIA_ENABLE
+static void read_metadata(void *buffer, uint32_t offset, uint32_t length) {
+    eeprom_read_block(buffer, (void *)(uintptr_t)(REPLICAZERON_METADATA_EEPROM_ADDR + offset), length);
+}
+
+static void write_metadata(const void *buffer, uint32_t offset, uint32_t length) {
+    eeprom_update_block(buffer, (void *)(uintptr_t)(REPLICAZERON_METADATA_EEPROM_ADDR + offset), length);
+}
+
+static void initialize_macro_timings(void) {
+    memset(macro_timings, 0, sizeof(macro_timings));
+    eeprom_update_block(macro_timings, (void *)(uintptr_t)REPLICAZERON_MACRO_TIMING_EEPROM_ADDR, sizeof(macro_timings));
+}
+
+static void load_macro_timings(void) {
+    eeprom_read_block(macro_timings, (void *)(uintptr_t)REPLICAZERON_MACRO_TIMING_EEPROM_ADDR, sizeof(macro_timings));
+    for (uint8_t macro = 0; macro < REPLICAZERON_MACRO_NAME_COUNT; ++macro) {
+        if (macro_timings[macro].minimum > macro_timings[macro].maximum) {
+            macro_timings[macro].minimum = macro_timings[macro].maximum;
+        }
+    }
+}
+
+static void write_macro_timing(uint8_t macro) {
+    eeprom_update_block(&macro_timings[macro],
+                        (void *)(uintptr_t)(REPLICAZERON_MACRO_TIMING_EEPROM_ADDR + macro * sizeof(macro_timing_t)),
+                        sizeof(macro_timing_t));
+}
+
+static void initialize_macro_names(void) {
+    char name[REPLICAZERON_TITLE_LENGTH];
+    for (uint8_t macro = 0; macro < REPLICAZERON_MACRO_NAME_COUNT; ++macro) {
+        memset(name, ' ', sizeof(name));
+        name[0] = 'M';
+        name[1] = 'a';
+        name[2] = 'c';
+        name[3] = 'r';
+        name[4] = 'o';
+        name[5] = ' ';
+        if (macro >= 10) {
+            name[6] = '1';
+            name[7] = '0' + (macro - 10);
+        } else {
+            name[6] = '0' + macro;
+        }
+        write_metadata(name, REPLICAZERON_MACRO_NAMES_OFFSET + macro * REPLICAZERON_TITLE_LENGTH, sizeof(name));
+    }
+}
+#endif
 
 static void write_layout_modes(void) {
     uint8_t side_led_level = MAX(2, (controller_state.sideLedBrightness + 8) / 17);
@@ -142,14 +326,13 @@ static void write_layout_modes(void) {
     for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
         stored_modes[layout] = controller_state.layoutModes[layout];
     }
-    stored_modes[0] |= controller_state.sideLedSourceA << REPLICAZERON_SIDE_LED_SOURCE_SHIFT;
-    stored_modes[1] |= controller_state.sideLedSourceB << REPLICAZERON_SIDE_LED_SOURCE_SHIFT;
-    eeprom_update_block(stored_modes, (void *)(uintptr_t)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_MODE_STORAGE_OFFSET),
-                        REPLICAZERON_MODE_STORAGE_SIZE);
-    static const uint8_t mode_signature[REPLICAZERON_MODE_SIGNATURE_SIZE] = {'J', '3'};
-    eeprom_update_block(mode_signature, (void *)(uintptr_t)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_MODE_SIGNATURE_OFFSET),
-                        REPLICAZERON_MODE_SIGNATURE_SIZE);
-    eeprom_update_byte((uint8_t *)(uintptr_t)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_SIDE_LED_POLARITY_OFFSET), controller_state.sideLedsActiveLow);
+    write_metadata(stored_modes, REPLICAZERON_MODE_STORAGE_OFFSET, REPLICAZERON_MODE_STORAGE_SIZE);
+    write_metadata(&controller_state.sideLedSourceA, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
+    write_metadata(&controller_state.sideLedSourceB, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
+    write_metadata(&controller_state.sideLedsActiveLow, REPLICAZERON_SIDE_LED_POLARITY_OFFSET, 1);
+    write_metadata(&controller_state.settingsStickMode, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
+    static const uint8_t metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE] = {'R', '7'};
+    write_metadata(metadata_signature, REPLICAZERON_METADATA_SIGNATURE_OFFSET, sizeof(metadata_signature));
 #endif
 }
 
@@ -168,6 +351,17 @@ static void set_layout_mode(uint8_t layout, joystick_mode_t mode) {
     }
 }
 
+static void set_settings_stick_mode(uint8_t mode) {
+    if (mode < SETTINGS_STICK_MODE_COUNT && controller_state.settingsStickMode != mode) {
+        controller_state.settingsStickMode = mode;
+#ifdef MOUSEKEY_ENABLE
+        settings_mouse_cursor_mode = false;
+        settings_mouse_movement_active = false;
+#endif
+        write_layout_modes();
+    }
+}
+
 static void load_layout_modes(void) {
     uint32_t config = eeconfig_read_kb();
     uint8_t hardware_config = config >> REPLICAZERON_MODE_CONFIG_MAGIC_SHIFT;
@@ -176,40 +370,116 @@ static void load_layout_modes(void) {
     bool modes_loaded = false;
     bool modes_need_write = false;
 #ifdef VIA_ENABLE
-    uint8_t stored_mode_signature[REPLICAZERON_MODE_SIGNATURE_SIZE];
-    eeprom_read_block(stored_mode_signature, (void *)(uintptr_t)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_MODE_SIGNATURE_OFFSET),
-                      REPLICAZERON_MODE_SIGNATURE_SIZE);
-    bool encoded_sources = stored_mode_signature[0] == 'J' && stored_mode_signature[1] == '3';
-    if (encoded_sources || (stored_mode_signature[0] == 'J' && stored_mode_signature[1] == '2')) {
+    uint8_t stored_metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE];
+    read_metadata(stored_metadata_signature, REPLICAZERON_METADATA_SIGNATURE_OFFSET, sizeof(stored_metadata_signature));
+    bool metadata_valid = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '7';
+    bool metadata_is_r6 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '6';
+    bool metadata_is_r5 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '5';
+    bool metadata_needs_keymap_migration = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '4';
+    if (metadata_valid || metadata_is_r6 || metadata_is_r5 || metadata_needs_keymap_migration) {
         uint8_t stored_modes[REPLICAZERON_MODE_STORAGE_SIZE];
-        eeprom_read_block(stored_modes, (void *)(uintptr_t)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_MODE_STORAGE_OFFSET),
-                          REPLICAZERON_MODE_STORAGE_SIZE);
+        read_metadata(stored_modes, REPLICAZERON_MODE_STORAGE_OFFSET, sizeof(stored_modes));
         modes_loaded = true;
         for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
-            controller_state.layoutModes[layout] = encoded_sources ? stored_modes[layout] & 0x03 : stored_modes[layout];
+            controller_state.layoutModes[layout] = stored_modes[layout];
             if (controller_state.layoutModes[layout] >= JOYSTICK_MODE_COUNT) {
                 controller_state.layoutModes[layout] = JOYSTICK_MODE_ANALOG;
                 modes_loaded = false;
             }
         }
-        if (encoded_sources) {
-            controller_state.sideLedSourceA = stored_modes[0] >> REPLICAZERON_SIDE_LED_SOURCE_SHIFT;
-            controller_state.sideLedSourceB = stored_modes[1] >> REPLICAZERON_SIDE_LED_SOURCE_SHIFT;
-            if (controller_state.sideLedSourceA >= SIDE_LED_SOURCE_COUNT) {
-                controller_state.sideLedSourceA = SIDE_LED_SOURCE_STICK;
-                modes_need_write = true;
-            }
-            if (controller_state.sideLedSourceB >= SIDE_LED_SOURCE_COUNT) {
-                controller_state.sideLedSourceB = SIDE_LED_SOURCE_BUTTONS;
-                modes_need_write = true;
-            }
-        } else {
+        read_metadata(&controller_state.sideLedSourceA, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
+        read_metadata(&controller_state.sideLedSourceB, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
+        if (controller_state.sideLedSourceA >= SIDE_LED_SOURCE_COUNT) {
+            controller_state.sideLedSourceA = SIDE_LED_SOURCE_STICK;
             modes_need_write = true;
         }
-        uint8_t stored_polarity = eeprom_read_byte((uint8_t *)(uintptr_t)(VIA_EEPROM_CUSTOM_CONFIG_ADDR + REPLICAZERON_SIDE_LED_POLARITY_OFFSET));
+        if (controller_state.sideLedSourceB >= SIDE_LED_SOURCE_COUNT) {
+            controller_state.sideLedSourceB = SIDE_LED_SOURCE_BUTTONS;
+            modes_need_write = true;
+        }
+        uint8_t stored_polarity;
+        read_metadata(&stored_polarity, REPLICAZERON_SIDE_LED_POLARITY_OFFSET, 1);
         if (stored_polarity <= 1) {
             controller_state.sideLedsActiveLow = stored_polarity != 0;
         }
+        if (metadata_valid || metadata_is_r6) {
+            load_macro_timings();
+        } else {
+            initialize_macro_timings();
+            eeprom_update_byte((uint8_t *)(uintptr_t)DYNAMIC_KEYMAP_EEPROM_MAX_ADDR, 0);
+            modes_need_write = true;
+        }
+        if (metadata_valid) {
+            read_metadata(&controller_state.settingsStickMode, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
+            if (controller_state.settingsStickMode >= SETTINGS_STICK_MODE_COUNT) {
+                controller_state.settingsStickMode = SETTINGS_STICK_MOUSE;
+                modes_need_write = true;
+            }
+        } else {
+            controller_state.settingsStickMode = SETTINGS_STICK_MOUSE;
+            modes_need_write = true;
+        }
+    } else {
+        uint8_t legacy_signature[2];
+        eeprom_read_block(legacy_signature, (void *)(uintptr_t)REPLICAZERON_LEGACY_MODE_SIGNATURE_ADDR, sizeof(legacy_signature));
+        bool legacy_modes_found = legacy_signature[0] == 'J' && (legacy_signature[1] == '2' || legacy_signature[1] == '3');
+        if (legacy_modes_found) {
+            uint8_t stored_modes[LAYOUT_COUNT];
+            eeprom_read_block(stored_modes, (void *)(uintptr_t)REPLICAZERON_LEGACY_MODE_STORAGE_ADDR, sizeof(stored_modes));
+            modes_loaded = true;
+            for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
+                controller_state.layoutModes[layout] = legacy_signature[1] == '3' ? stored_modes[layout] & 0x03 : stored_modes[layout];
+                if (controller_state.layoutModes[layout] >= JOYSTICK_MODE_COUNT) {
+                    controller_state.layoutModes[layout] = JOYSTICK_MODE_ANALOG;
+                }
+            }
+            if (legacy_signature[1] == '3') {
+                controller_state.sideLedSourceA = stored_modes[0] >> REPLICAZERON_SIDE_LED_SOURCE_SHIFT;
+                controller_state.sideLedSourceB = stored_modes[1] >> REPLICAZERON_SIDE_LED_SOURCE_SHIFT;
+                if (controller_state.sideLedSourceA >= SIDE_LED_SOURCE_COUNT) {
+                    controller_state.sideLedSourceA = SIDE_LED_SOURCE_STICK;
+                }
+                if (controller_state.sideLedSourceB >= SIDE_LED_SOURCE_COUNT) {
+                    controller_state.sideLedSourceB = SIDE_LED_SOURCE_BUTTONS;
+                }
+            }
+            uint8_t stored_polarity = eeprom_read_byte((uint8_t *)(uintptr_t)REPLICAZERON_LEGACY_SIDE_LED_POLARITY_ADDR);
+            if (stored_polarity <= 1) {
+                controller_state.sideLedsActiveLow = stored_polarity != 0;
+            }
+
+            /* Older builds stored 13 bytes of metadata at the dynamic-keymap
+             * start. Those bytes replaced the first seven Layout 0 keycodes.
+             * The original values are unrecoverable, so restore just those
+             * damaged positions from the compiled keymap defaults. */
+            for (uint8_t byte = 0; byte < REPLICAZERON_LEGACY_OVERLAP_SIZE; byte += 2) {
+                uint8_t position = byte / 2;
+                uint8_t row = position / MATRIX_COLS;
+                uint8_t column = position % MATRIX_COLS;
+                dynamic_keymap_set_keycode(0, row, column, keycode_at_keymap_location_raw(0, row, column));
+            }
+        }
+        initialize_macro_names();
+        initialize_macro_timings();
+        /* The macro buffer previously extended into this reserved tail. Keep
+         * its new final sentinel clear so existing short macros remain valid. */
+        eeprom_update_byte((uint8_t *)(uintptr_t)DYNAMIC_KEYMAP_EEPROM_MAX_ADDR, 0);
+        modes_need_write = true;
+    }
+    if (!metadata_valid && !metadata_is_r6 && !metadata_is_r5) {
+        /* Layers 3 and 4 used to contain remnants of the old setup layer.
+         * Settings is now a tool layer. Restore only those three layers once,
+         * leaving every user layout outside them untouched. */
+        static const uint8_t layers_to_restore[] = {_LAYOUT_4, _LAYOUT_5, _SETTINGS};
+        for (uint8_t index = 0; index < ARRAY_SIZE(layers_to_restore); ++index) {
+            uint8_t layer = layers_to_restore[index];
+            for (uint8_t row = 0; row < MATRIX_ROWS; ++row) {
+                for (uint8_t column = 0; column < MATRIX_COLS; ++column) {
+                    dynamic_keymap_set_keycode(layer, row, column, keycode_at_keymap_location_raw(layer, row, column));
+                }
+            }
+        }
+        modes_need_write = true;
     }
 #endif
     if (!modes_loaded && (current_hardware_config || legacy_hardware_config)) {
@@ -399,18 +669,24 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_SIDE_LEDS_GET 0x0A
 #    define REPLICAZERON_SIDE_LEDS_SET 0x0B
 #    define REPLICAZERON_BOOTLOADER_REQUEST 0x0C
+#    define REPLICAZERON_MACRO_NAME_GET 0x0D
+#    define REPLICAZERON_MACRO_NAME_SET 0x0E
+#    define REPLICAZERON_MACRO_BUFFER_SET 0x0F
+#    define REPLICAZERON_CONFIG_HEARTBEAT 0x10
+#    define REPLICAZERON_SETTINGS_STICK_GET 0x11
+#    define REPLICAZERON_SETTINGS_STICK_SET 0x12
 
 char replicazeron_titles[REPLICAZERON_TITLE_COUNT][REPLICAZERON_TITLE_LENGTH] = {
     "Casual       ",
     "Shooter      ",
     "Misc         ",
+    "Empty 3      ",
     "Empty 4      ",
     "Empty 5      ",
     "Empty 6      ",
     "Empty 7      ",
     "Empty 8      ",
     "Empty 9      ",
-    "Empty 10     ",
     "Settings     ",
 };
 static const uint8_t title_signature[REPLICAZERON_TITLE_SIGNATURE_SIZE] = {'R', 'T'};
@@ -442,10 +718,10 @@ void via_init_kb(void) {
     if (title_storage_valid) {
         /* Vial normally derives its EEPROM marker from a random BUILD_ID, so
          * every newly compiled firmware would reset the saved dynamic keymap
-         * to the hardcoded defaults. Our custom-data signature lives after
-         * the dynamic keymap and therefore also verifies that the EEPROM
-         * layout is compatible. Migrate the marker to this build before
-         * Vial decides whether it should reset mappings and macros. */
+         * to the hardcoded defaults. Our stable custom-data signature verifies
+         * that this Replicazeron storage layout was initialized. Migrate the
+         * marker to this build before Vial decides whether it should reset
+         * mappings and macros. */
         if (!via_eeprom_is_valid()) {
             via_eeprom_set_valid(true);
         }
@@ -465,11 +741,19 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
         return;
     }
 
-    if (data[1] == REPLICAZERON_DEADZONE_GET) {
+    if (data[1] == REPLICAZERON_CONFIG_HEARTBEAT) {
+        data[3] = 1;
+    } else if (data[1] == REPLICAZERON_SETTINGS_STICK_GET) {
+        data[3] = controller_state.settingsStickMode;
+    } else if (data[1] == REPLICAZERON_SETTINGS_STICK_SET) {
+        if (data[3] >= SETTINGS_STICK_MODE_COUNT) {
+            data[0] = id_unhandled;
+        } else {
+            set_settings_stick_mode(data[3]);
+        }
+    } else if (data[1] == REPLICAZERON_DEADZONE_GET) {
         data[3] = controller_state.deadzone >> 8;
         data[4] = controller_state.deadzone & 0xFF;
-        uprintf("DEADZONE_GET -> %u\n",
-        controller_state.deadzone);
     } else if (data[1] == REPLICAZERON_DEADZONE_SET) {
         set_deadzone((data[3] << 8) | data[4]);
     } else if (data[1] == REPLICAZERON_RGB_GET) {
@@ -582,6 +866,43 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             bootloader_request_started = timer_read32();
             data[3] = 1;
         }
+    } else if (data[1] == REPLICAZERON_MACRO_NAME_GET) {
+        uint8_t macro = data[2];
+        if (macro >= REPLICAZERON_MACRO_NAME_COUNT) {
+            data[0] = id_unhandled;
+        } else {
+            read_metadata(&data[3], REPLICAZERON_MACRO_NAMES_OFFSET + macro * REPLICAZERON_TITLE_LENGTH, REPLICAZERON_TITLE_LENGTH);
+            data[16] = macro_timings[macro].minimum >> 8;
+            data[17] = macro_timings[macro].minimum & 0xFF;
+            data[18] = macro_timings[macro].maximum >> 8;
+            data[19] = macro_timings[macro].maximum & 0xFF;
+            data[31] = 0xA6;
+        }
+    } else if (data[1] == REPLICAZERON_MACRO_NAME_SET) {
+        uint8_t macro = data[2];
+        if (macro >= REPLICAZERON_MACRO_NAME_COUNT) {
+            data[0] = id_unhandled;
+        } else {
+            uint16_t minimum = ((uint16_t)data[16] << 8) | data[17];
+            uint16_t maximum = ((uint16_t)data[18] << 8) | data[19];
+            if (minimum > maximum) {
+                data[0] = id_unhandled;
+                return;
+            }
+            sanitize_title((char *)&data[3]);
+            write_metadata(&data[3], REPLICAZERON_MACRO_NAMES_OFFSET + macro * REPLICAZERON_TITLE_LENGTH, REPLICAZERON_TITLE_LENGTH);
+            macro_timings[macro].minimum = minimum;
+            macro_timings[macro].maximum = maximum;
+            write_macro_timing(macro);
+        }
+    } else if (data[1] == REPLICAZERON_MACRO_BUFFER_SET) {
+        uint16_t offset = ((uint16_t)data[3] << 8) | data[4];
+        uint8_t size = data[5];
+        if (data[2] != 0 || size > 26 || offset + size > dynamic_keymap_macro_get_buffer_size()) {
+            data[0] = id_unhandled;
+        } else {
+            dynamic_keymap_macro_set_buffer(offset, size, &data[6]);
+        }
     } else if (data[2] >= REPLICAZERON_TITLE_COUNT) {
         data[0] = id_unhandled;
     } else if (data[1] == REPLICAZERON_TITLE_GET) {
@@ -593,7 +914,6 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
         uint8_t layout = data[2];
         if (layout >= LAYOUT_COUNT) {
             data[0] = id_unhandled;
-            raw_hid_send(data, length);
             return;
         }
         for (uint8_t index = 0; index < REPLICAZERON_TITLE_LENGTH; index++) {
@@ -604,7 +924,40 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
     } else {
         data[0] = id_unhandled;
     }
-    raw_hid_send(data, length);
+}
+#endif
+
+#ifdef VIA_ENABLE
+bool via_should_process_command_kb(const uint8_t *data, uint8_t length) {
+    if (length != 32) {
+        return true;
+    }
+    if (data[0] >= id_lighting_set_value && data[0] <= id_lighting_save) {
+        if (configuration_hid_active && timer_elapsed32(configuration_hid_timer) < 5000) {
+            return false;
+        }
+        configuration_hid_active = false;
+        return true;
+    }
+    if (data[0] != id_get_protocol_version && !(data[0] == id_vial_prefix && data[1] == vial_get_keyboard_id)) {
+        configuration_hid_active = true;
+        configuration_hid_timer = timer_read32();
+    }
+    return true;
+}
+
+uint16_t dynamic_keymap_macro_get_auto_delay(uint8_t id) {
+    if (id >= REPLICAZERON_MACRO_NAME_COUNT || macro_timings[id].maximum == 0) {
+        return 0;
+    }
+
+    uint16_t minimum = macro_timings[id].minimum;
+    uint16_t maximum = macro_timings[id].maximum;
+    if (minimum == maximum) {
+        return minimum;
+    }
+
+    return minimum + timer_read32() % ((uint32_t)maximum - minimum + 1);
 }
 #endif
 
@@ -670,7 +1023,7 @@ uint16_t joystick_axis_sample(uint8_t axis) {
 
     /* WASD profiles must not also expose a moving analog stick to games. The
      * physical values remain cached for the keyboard-emulation path below. */
-    return controller_state.wasdMode ? 512 : filtered_samples[axis];
+    return controller_state.wasdMode || controller_state.highestActiveLayer == _SETTINGS ? 512 : filtered_samples[axis];
 }
 #endif
 
@@ -737,6 +1090,9 @@ void housekeeping_task_kb(void) {
     }
 
     update_thumbstick_position(filtered_axes[0], filtered_axes[1]);
+#    ifdef MOUSEKEY_ENABLE
+    update_settings_mouse();
+#    endif
 #    ifdef RGB_MATRIX_ENABLE
     replicazeron_rgb_set_joystick_activity(filtered_axes[0], filtered_axes[1]);
 #    endif
@@ -1266,6 +1622,15 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
+    /* Existing Vial EEPROMs still contain KC_APP at the new toggle's default
+     * position. Treat that exact legacy default as the toggle without
+     * overwriting a user's remapped key. */
+    if (controller_state.highestActiveLayer == _SETTINGS &&
+        record->event.key.row == REPLICAZERON_SETTINGS_MOUSE_TOGGLE_ROW &&
+        record->event.key.col == REPLICAZERON_SETTINGS_MOUSE_TOGGLE_COL && keycode == KC_APP) {
+        keycode = SETTINGS_MOUSE_TOGGLE;
+    }
+
     if (!process_record_user(keycode, record)) {
         return false;
     }
@@ -1481,6 +1846,15 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         unregister_code(KC_W);
       }
     }
+#ifdef MOUSEKEY_ENABLE
+    else if (keycode == SETTINGS_MOUSE_TOGGLE) {
+        if (record->event.pressed && controller_state.highestActiveLayer == _SETTINGS && controller_state.settingsStickMode == SETTINGS_STICK_MOUSE) {
+            settings_mouse_cursor_mode = !settings_mouse_cursor_mode;
+            settings_mouse_movement_active = false;
+        }
+        return false;
+    }
+#endif
     return true;
 };
 

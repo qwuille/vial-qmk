@@ -201,6 +201,10 @@ __attribute__((weak)) void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
     *command_id         = id_unhandled;
 }
 
+__attribute__((weak)) bool via_should_process_command_kb(const uint8_t *data, uint8_t length) {
+    return true;
+}
+
 // VIA handles received HID messages first, and will route to
 // raw_hid_receive_kb() for command IDs that are not handled here.
 // This gives the keyboard code level the ability to handle the command
@@ -209,6 +213,10 @@ __attribute__((weak)) void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 // raw_hid_send() is called at the end, with the same buffer, which was
 // possibly modified with returned values.
 void raw_hid_receive(uint8_t *data, uint8_t length) {
+    if (!via_should_process_command_kb(data, length)) {
+        return;
+    }
+
     uint8_t *command_id   = &(data[0]);
     uint8_t *command_data = &(data[1]);
 

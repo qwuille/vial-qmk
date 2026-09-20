@@ -26,8 +26,12 @@
 - `replicazeron.c`
   - Stores title data through a private Raw HID command.
   - Uses the custom-data signature to migrate Vial's per-build EEPROM marker so normal firmware reflashes preserve dynamic mappings, macros, and settings.
+  - Reserves the EEPROM tail for joystick metadata and 16 macro names; this
+    avoids overlapping Layout 0 while keeping the existing keymap start address.
+  - Migrates the legacy `J2`/`J3` metadata and restores its seven overwritten
+    Layout 0 positions from compiled defaults.
   - Seeds default titles:
-    `Casual`, `Shooter`, `Misc`, `Empty 4` through `Empty 10`, and `Settings`.
+    `Casual`, `Shooter`, `Misc`, `Empty 3` through `Empty 9`, and `Settings`.
 - `common/oled.c`
   - Renders title data stored in RAM.
   - Shows a roughly 1.9-second Replicazeron ripple logo at boot.

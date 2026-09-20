@@ -106,11 +106,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [_SETTINGS] = LAYOUT(
-        RGB_M_P,  RGB_M_B,   RGB_M_K, RGB_M_T,   KC_RIGHT,
-        KC_NO,    RGB_SAI,   RGB_VAI, RGB_HUI,   MENU_TOGGLE,
-        RGB_TOG,  KC_NO,     KC_NO,   KC_NO,     KC_DOWN,
-        KC_NO,    RGB_SAD,   RGB_VAD, RGB_HUD,   KC_LEFT,
-        QK_BOOT,  JOYMODE,   AUTORUN, KC_V,       KC_UP,
-        RGB_MOD,  TO(_LAYOUT_1), KC_NO, RGB_RMOD, KC_P
+        LCTL(KC_X), LCTL(KC_C), LCTL(KC_V), LCTL(KC_Z), KC_RIGHT,
+        LCTL(KC_S), LCTL(KC_F), LCTL(KC_T), LCTL(KC_W), MENU_TOGGLE,
+        LCTL(KC_A), KC_BSPC,    KC_DEL,      KC_ENT,     KC_DOWN,
+        KC_WBAK,    KC_WFWD,    KC_HOME,     KC_END,     KC_LEFT,
+        MS_BTN1,    MS_BTN2,    LCTL(KC_Y),  SETTINGS_MOUSE_TOGGLE, KC_UP,
+        KC_ESC,     TO(_LAYOUT_1), KC_TAB,   KC_SPC,     KC_ENT
     )
 };

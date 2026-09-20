@@ -248,6 +248,17 @@ static uint16_t decode_keycode(uint16_t kc) {
     return kc;
 }
 
+__attribute__((weak)) uint16_t dynamic_keymap_macro_get_auto_delay(uint8_t id) {
+    return 0;
+}
+
+static void dynamic_keymap_macro_wait_after_action(uint8_t id) {
+    uint16_t delay = dynamic_keymap_macro_get_auto_delay(id);
+    if (delay > 0) {
+        wait_ms(delay);
+    }
+}
+
 void dynamic_keymap_macro_send(uint8_t id) {
     if (id >= DYNAMIC_KEYMAP_MACRO_COUNT) {
         return;
@@ -263,7 +274,8 @@ void dynamic_keymap_macro_send(uint8_t id) {
 
     // Skip N null characters
     // offset will then point to the Nth macro
-    uint32_t offset = 0;
+    uint8_t  macro_id = id;
+    uint32_t offset   = 0;
     uint32_t end    = nvm_dynamic_keymap_macro_size();
     while (id > 0) {
         // If we are past the end of the buffer, then there is
@@ -298,8 +310,10 @@ void dynamic_keymap_macro_send(uint8_t id) {
             if (data[1] == SS_TAP_CODE || data[1] == SS_DOWN_CODE || data[1] == SS_UP_CODE) {
                 // For tap, down, up, just stuff it into the array and send_string it
                 data[2] = dynamic_keymap_read_byte(offset++);
-                if (data[2] != 0)
+                if (data[2] != 0) {
                     send_string(data);
+                    dynamic_keymap_macro_wait_after_action(macro_id);
+                }
             } else if (data[1] == VIAL_MACRO_EXT_TAP || data[1] == VIAL_MACRO_EXT_DOWN || data[1] == VIAL_MACRO_EXT_UP) {
                 data[2] = dynamic_keymap_read_byte(offset++);
                 if (data[2] != 0) {
@@ -311,12 +325,15 @@ void dynamic_keymap_macro_send(uint8_t id) {
                         switch (data[1]) {
                         case VIAL_MACRO_EXT_TAP:
                             vial_keycode_tap(kc);
+                            dynamic_keymap_macro_wait_after_action(macro_id);
                             break;
                         case VIAL_MACRO_EXT_DOWN:
                             vial_keycode_down(kc);
+                            dynamic_keymap_macro_wait_after_action(macro_id);
                             break;
                         case VIAL_MACRO_EXT_UP:
                             vial_keycode_up(kc);
+                            dynamic_keymap_macro_wait_after_action(macro_id);
                             break;
                         }
                     }
@@ -334,6 +351,7 @@ void dynamic_keymap_macro_send(uint8_t id) {
         } else {
             // If the char wasn't magic, just send it
             send_string_with_delay(data, DYNAMIC_KEYMAP_MACRO_DELAY);
+            dynamic_keymap_macro_wait_after_action(macro_id);
         }
     }
 }

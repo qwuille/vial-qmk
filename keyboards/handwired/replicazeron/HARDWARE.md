@@ -1,6 +1,6 @@
 # Replicazeron firmware hardware guide
 
-This document describes the hardware assumptions made by Qwuille's complete
+This document describes the hardware assumptions made by the complete
 STM32F103 Vial firmware. Replicazeron builds are hand-wired and commonly vary,
 so verify every connection against both your controller board and the firmware
 configuration before applying power.

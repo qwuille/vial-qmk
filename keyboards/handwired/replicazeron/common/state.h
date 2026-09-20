@@ -81,6 +81,14 @@ typedef enum {
 } joystick_mode_t;
 
 typedef enum {
+    SETTINGS_STICK_MOUSE = 0,
+    SETTINGS_STICK_MIDDLE_DRAG,
+    SETTINGS_STICK_SHIFT_MIDDLE_DRAG,
+    SETTINGS_STICK_RIGHT_DRAG,
+    SETTINGS_STICK_MODE_COUNT
+} settings_stick_mode_t;
+
+typedef enum {
     SIDE_LED_SOURCE_OFF = 0,
     SIDE_LED_SOURCE_STICK,
     SIDE_LED_SOURCE_BUTTONS,
@@ -104,6 +112,7 @@ typedef struct {
     /* EEPROM stores exactly one byte per layout. Do not use the enum type
      * here: ARM enums are wider than one byte unless explicitly packed. */
     uint8_t layoutModes[LAYOUT_COUNT];
+    uint8_t settingsStickMode;
     rgb_animation_id_t rgbAnimationSelection;
     bool rgbStaticSelected;
     bool openrgbEnabled;
