@@ -16,8 +16,6 @@
 
 #pragma once
 
-#define THUMBSTICK_DEBUG
-
 /* Runtime-configurable idle handling is implemented in common/oled.c. */
 #define OLED_TIMEOUT 0
 /* Live input screens otherwise dirty the display on nearly every matrix loop,

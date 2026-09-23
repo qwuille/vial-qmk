@@ -356,6 +356,9 @@ static const char *side_led_source_name(uint8_t source) {
         case SIDE_LED_SOURCE_CAPS_LOCK: return PSTR("Caps Lock");
         case SIDE_LED_SOURCE_NUM_LOCK: return PSTR("Num Lock");
         case SIDE_LED_SOURCE_SCROLL_LOCK: return PSTR("Scroll Lock");
+        case SIDE_LED_SOURCE_OPENRGB: return PSTR("OpenRGB");
+        case SIDE_LED_SOURCE_CONFIGURATION: return PSTR("Vial/Web");
+        case SIDE_LED_SOURCE_HOST_CONTROL: return PSTR("Host");
         default: return PSTR("Off");
     }
 }

@@ -101,6 +101,9 @@ static uint32_t bootloader_request_started;
 static bool configuration_hid_active;
 static uint32_t configuration_hid_timer;
 #endif
+#ifdef VIALRGB_ENABLE
+static uint32_t openrgb_hid_timer;
+#endif
 #ifdef MOUSEKEY_ENABLE
 static bool settings_mouse_middle;
 static bool settings_mouse_button_right;
@@ -625,6 +628,9 @@ static void set_rgb_led_count(uint8_t count) {
 #ifdef VIALRGB_ENABLE
 bool vialrgb_allow_write_kb(uint8_t command) {
     (void)command;
+    if (controller_state.openrgbEnabled) {
+        openrgb_hid_timer = timer_read32();
+    }
     return controller_state.openrgbEnabled;
 }
 
@@ -1165,6 +1171,20 @@ static uint8_t side_led_source_level(uint8_t source, uint16_t joystick_distance,
             return host_keyboard_led_state().num_lock ? UINT8_MAX : 0;
         case SIDE_LED_SOURCE_SCROLL_LOCK:
             return host_keyboard_led_state().scroll_lock ? UINT8_MAX : 0;
+        case SIDE_LED_SOURCE_OPENRGB:
+        case SIDE_LED_SOURCE_CONFIGURATION:
+        case SIDE_LED_SOURCE_HOST_CONTROL: {
+#    if defined(VIA_ENABLE) && defined(VIALRGB_ENABLE)
+            bool configuration_active = configuration_hid_active && timer_elapsed32(configuration_hid_timer) < 5000;
+            bool openrgb_active = controller_state.openrgbEnabled && timer_elapsed32(openrgb_hid_timer) < 1000;
+            if (source == SIDE_LED_SOURCE_HOST_CONTROL && configuration_active) {
+                return timer_read() & 0x0100 ? UINT8_MAX : 0;
+            }
+            return (source == SIDE_LED_SOURCE_CONFIGURATION ? configuration_active : openrgb_active) ? UINT8_MAX : 0;
+#    else
+            return 0;
+#    endif
+        }
         default:
             return 0;
     }

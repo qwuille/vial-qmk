@@ -48,10 +48,12 @@ OpenRGB support. It keeps all 11 Vial layout slots, macros, editable layout
 titles, per-layout joystick modes, OLED settings, WebHID configuration, and
 normal Vial remapping.
 
-The optional Vial Key Override engine is disabled on the STM32F103 build to
-leave flash space for the Replicazeron OLED, WebHID, macro, joystick, and
-lighting features. Tap Dance remains available, along with ordinary key
-remapping, layer keys, the Vial macro engine, and all 11 layout slots.
+The optional Vial Key Override engine, developer HID Console, and NKRO are
+disabled on the STM32F103 build to leave flash space for the Replicazeron OLED,
+WebHID, macro, joystick, lighting, and host-traffic indicator features. The
+standard keyboard report still supports six simultaneous keyboard keys;
+joystick and mouse reports remain separate. Tap Dance, ordinary remapping,
+layer keys, the Vial macro engine, and all 11 layout slots remain available.
 
 OpenRGB communicates through VialRGB on the existing 32-byte Vial Raw HID
 interface. There is no bridge program and no second OpenRGB HID interface, so
@@ -176,7 +178,10 @@ The two side status LEDs have a separate persistent `SIDELED` menu. `Enabled`
 turns both indicators on or off, and `Bright` sets their shared maximum
 brightness in 15 steps. `Left LED` and `Right LED` independently select Off, stick
 strength, buttons held, combined activity, always on, Caps Lock, Num Lock,
-or Scroll Lock. The defaults retain
+Scroll Lock, OpenRGB traffic, Vial/WebHID traffic, or Host control. OpenRGB and
+Vial/WebHID traffic can be monitored separately. Host control stays steadily
+lit for active OpenRGB frames and blinks while Vial or WebHID temporarily has
+configuration priority. It turns off when neither protocol is active. The defaults retain
 the original behavior: the left LED shows stick strength and the right LED shows buttons.
 The same controls are available under **Side indicators** in the WebHID Control
 Deck; they do not change the addressable RGB strip. A short
@@ -192,8 +197,9 @@ OpenRGB application effects are rendered by OpenRGB and streamed through
 VialRGB Direct mode; adding those effects does not require a firmware change.
 
 The two monochrome side indicators remain separate GPIO LEDs controlled by
-their firmware-selected activity sources. They are not exposed to VialRGB or
-OpenRGB. OpenRGB controls only the addressable strip, and its writes are
+their firmware-selected activity sources. They are not exposed as VialRGB or
+OpenRGB lighting endpoints, although they can indicate current host-protocol
+traffic. OpenRGB controls only the addressable strip, and its writes are
 accepted only while the firmware RGB controller is set to **OpenRGB**.
 
 The WebHID RGB card stores an addressable LED count from 1 to 32; the default
