@@ -93,6 +93,14 @@ validates the STM32 image size/vector table or the RP2040 UF2 family,
 completeness, and flash range before enabling the write button. Keep manual
 DFU, SWD, or BOOTSEL flashing available as a recovery path.
 
+After identifying the controller, the page loads the matching firmware sourced
+from the latest GitHub release and verifies its published size and SHA-256
+digest. The Pages deployment performs the same checks before placing the asset
+beside the site, avoiding GitHub release-redirect CORS restrictions without
+committing binaries to the WebHID repository. The verified file can also be
+downloaded from the page for manual recovery; selecting a local file is no
+longer required.
+
 Older RP2040 firmware predates the controller-identity reply used for automatic
 selection. Install the current UF2 once by holding BOOTSEL while connecting USB
 and copying it to `RPI-RP2`. After that one manual update, the page recognizes
