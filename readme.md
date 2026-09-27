@@ -15,10 +15,9 @@ existing models and the earlier hardware documentation should use the separate
   layer.
 - Per-layout WASD and configurable Faux analog modes. RP2040 additionally has
   Joystick and XInput + keyboard layouts with freely assignable gamepad buttons.
-- Settings-layer proportional page scrolling with a cursor toggle, plus CAD
-  middle-drag, Shift+middle-drag, and right-drag thumbstick modes. Entering
-  Settings releases and suppresses the playable layer's WASD/Faux keys so CAD
-  shortcuts cannot leak into the application.
+- Settings-layer proportional page scrolling with a cursor toggle, plus a
+  pointer-independent analog CAD bridge for Fusion and FreeCAD. Entering
+  Settings releases and suppresses the playable layer's WASD/Faux keys.
 - VialRGB/OpenRGB control through the existing Vial Raw HID interface.
 - Firmware-controlled lighting with reactive, splash, multisplash,
   reactive-cross, and reactive-wide effects. The RP2040 build provides sixteen
@@ -48,7 +47,8 @@ testing showed that mixed joystick and keyboard input made games repeatedly
 switch their HUD and active input prompts. That switching was not smooth and
 could introduce visible hesitation during play. STM32 therefore presents its
 gaming controls as keyboard input only. Its analog thumbstick sampling is still
-used internally for proportional scrolling, cursor control, and CAD pan/orbit.
+used internally for proportional scrolling, cursor control, and the optional
+Fusion/FreeCAD camera bridge.
 The separately published, feature-frozen DirectInput compatibility release is
 available for programs and games where the original interface works correctly.
 
@@ -126,6 +126,7 @@ documented core integrations, not every inherited keyboard definition.
 - [Complete component, pin, power, and compatibility guide](keyboards/handwired/replicazeron/HARDWARE.md)
 - [Firmware features, OpenRGB, WebHID, DFU, wiring, and usage](keyboards/handwired/replicazeron/readme.md)
 - [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
+- [Fusion and FreeCAD analog camera bridge](tools/replicazeron-cad-bridge/README.md)
 - [Interactive RP2040 wiring guide](docs/replicazeron-rp2040-wiring-diagram.html) and
   [offline PDF](docs/Replicazeron_RP2040_Wiring_Diagram.pdf)
 - [Interactive STM32F103 wiring guide](docs/replicazeron-stm32f103-wiring-diagram.html) and

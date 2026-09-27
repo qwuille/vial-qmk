@@ -27,18 +27,19 @@
     former HID/DirectInput joystick gaming mode caused games to switch
     repeatedly and unsmoothly between gamepad and keyboard HUD/input prompts.
     Removing that USB report does not remove the internal analog sampling used
-    for proportional scrolling, cursor control, or CAD pan/orbit.
+    for proportional scrolling, cursor control, or the Fusion/FreeCAD bridge.
   - The separately released STM32 DirectInput compatibility build restores the
     HID joystick and this gamepad palette. It retains the present feature set
-    but is feature-frozen because only 80 application-flash bytes remain in
-    the verified build.
+    but is feature-frozen because only a few hundred application-flash bytes
+    remain in the verified build.
   - On RP2040, Gamepad Buttons 1-17 are labelled with their additional XInput
     meanings. A saved binding emits a numbered DirectInput button in Analog
     mode or its labelled Xbox control in XInput mode.
   - Mode menu: STM32 Standard layouts cycle WASD and Faux analog. STM32
     DirectInput adds Joystick; RP2040 also adds XInput + keys. Faux analog uses configurable Walk and Run keys and
-    strength thresholds without exposing a gamepad. Settings tools retain
-    their separate proportional scroll/pan/orbit behavior on both targets.
+    strength thresholds without exposing a gamepad. Settings tools provide
+    proportional scroll/cursor or the pointer-independent CAD bridge on both
+    targets. The Settings five-way remains permanently firmware-owned.
   - Screen menu: choose one of the ten playable layouts and cycle Input
     monitor, Macro focus, Game status, Combined, or Minimal OLED designs.
     Combined uses its fourth row for the last macro instead of RGB status.

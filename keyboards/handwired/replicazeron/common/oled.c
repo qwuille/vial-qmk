@@ -497,14 +497,8 @@ static void draw_mode_value(joystick_mode_t mode) {
 
 static void draw_settings_stick_value(uint8_t mode) {
     switch (mode) {
-        case SETTINGS_STICK_MIDDLE_DRAG:
-            oled_write_ln_P(PSTR("Middle-button drag"), false);
-            break;
-        case SETTINGS_STICK_SHIFT_MIDDLE_DRAG:
-            oled_write_ln_P(PSTR("Shift + middle"), false);
-            break;
-        case SETTINGS_STICK_RIGHT_DRAG:
-            oled_write_ln_P(PSTR("Right-button drag"), false);
+        case SETTINGS_STICK_CAD_BRIDGE:
+            oled_write_ln_P(PSTR("CAD bridge"), false);
             break;
         default:
             oled_write_ln_P(PSTR("Page scroll/cursor"), false);

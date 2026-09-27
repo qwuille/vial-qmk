@@ -138,9 +138,6 @@ static uint32_t openrgb_hid_timer;
 static uint8_t  openrgb_virtual_keycode_column = UINT8_MAX;
 #endif
 #ifdef MOUSEKEY_ENABLE
-static bool settings_mouse_middle;
-static bool settings_mouse_button_right;
-static bool settings_mouse_shift;
 static bool settings_mouse_cursor_mode;
 static bool settings_mouse_movement_active;
 static uint16_t settings_mouse_report_timer;
@@ -207,18 +204,6 @@ static void release_wasd_keys(void) {
 }
 
 #ifdef MOUSEKEY_ENABLE
-static void set_settings_mouse_key(bool *current, bool next, uint8_t keycode) {
-    if (*current == next) {
-        return;
-    }
-    *current = next;
-    if (next) {
-        mousekey_on(keycode);
-    } else {
-        mousekey_off(keycode);
-    }
-}
-
 static uint8_t settings_mouse_strength(uint16_t distance) {
     uint16_t deadzone = controller_state.deadzone;
     if (distance <= deadzone) {
@@ -280,26 +265,20 @@ static void send_settings_mouse_movement(bool up, bool down, bool left, bool rig
 }
 
 static void update_settings_mouse(void) {
-    bool active = controller_state.highestActiveLayer == _SETTINGS && thumbstick_polar_position.distance >= controller_state.deadzone;
+    bool active = controller_state.highestActiveLayer == _SETTINGS &&
+                  controller_state.settingsStickMode == SETTINGS_STICK_MOUSE &&
+                  thumbstick_polar_position.distance >= controller_state.deadzone;
     uint16_t angle = thumbstick_polar_position.angle;
     bool up = active && (update_keystate(0, 90, angle) || update_keystate(315, 360, angle));
     bool left = active && update_keystate(45, 181, angle);
     bool down = active && update_keystate(135, 270, angle);
     bool right = active && update_keystate(225, 359, angle);
 
-    bool scroll_mode = controller_state.settingsStickMode == SETTINGS_STICK_MOUSE && !settings_mouse_cursor_mode;
+    bool scroll_mode = !settings_mouse_cursor_mode;
     if (active) {
         send_settings_mouse_movement(up, down, left, right, settings_mouse_strength(thumbstick_polar_position.distance), !scroll_mode);
     } else {
         settings_mouse_movement_active = false;
-    }
-
-    set_settings_mouse_key(&settings_mouse_middle, active && (controller_state.settingsStickMode == SETTINGS_STICK_MIDDLE_DRAG || controller_state.settingsStickMode == SETTINGS_STICK_SHIFT_MIDDLE_DRAG), QK_MOUSE_BUTTON_3);
-    set_settings_mouse_key(&settings_mouse_button_right, active && controller_state.settingsStickMode == SETTINGS_STICK_RIGHT_DRAG, QK_MOUSE_BUTTON_2);
-    bool shift = active && controller_state.settingsStickMode == SETTINGS_STICK_SHIFT_MIDDLE_DRAG;
-    if (settings_mouse_shift != shift) {
-        settings_mouse_shift = shift;
-        shift ? register_code(KC_LSFT) : unregister_code(KC_LSFT);
     }
 
     if (controller_state.highestActiveLayer != _SETTINGS) {
@@ -943,6 +922,7 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_SMOOTHING_SET 0x19
 #    define REPLICAZERON_FAUX_ANALOG_GET 0x1A
 #    define REPLICAZERON_FAUX_ANALOG_SET 0x1B
+#    define REPLICAZERON_CAD_STICK_GET 0x1C
 #    define REPLICAZERON_DEVICE_STM32F103 0x01
 #    define REPLICAZERON_DEVICE_RP2040 0x02
 #    define REPLICAZERON_IDENTITY_FORMAT 0x02
@@ -953,6 +933,7 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_CAP_XINPUT (1U << 1)
 #    define REPLICAZERON_CAP_FAUX_ANALOG (1U << 2)
 #    define REPLICAZERON_CAP_SETTINGS_ANALOG (1U << 3)
+#    define REPLICAZERON_CAP_CAD_BRIDGE (1U << 4)
 
 char replicazeron_titles[REPLICAZERON_TITLE_COUNT][REPLICAZERON_TITLE_LENGTH] = {
     "Casual       ",
@@ -1020,7 +1001,7 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
     }
 
     if (data[1] == REPLICAZERON_DEVICE_GET) {
-        uint16_t capabilities = REPLICAZERON_CAP_FAUX_ANALOG | REPLICAZERON_CAP_SETTINGS_ANALOG;
+        uint16_t capabilities = REPLICAZERON_CAP_FAUX_ANALOG | REPLICAZERON_CAP_SETTINGS_ANALOG | REPLICAZERON_CAP_CAD_BRIDGE;
 #ifdef RP2040
         data[3] = REPLICAZERON_DEVICE_RP2040;
         data[5] = REPLICAZERON_VARIANT_RP2040_FULL;
@@ -1169,6 +1150,15 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
         } else {
             set_faux_analog_config(data[3], data[4], data[5], data[6]);
         }
+    } else if (data[1] == REPLICAZERON_CAD_STICK_GET) {
+        data[3] = 1; /* CAD bridge report format. */
+        data[4] = controller_state.highestActiveLayer == _SETTINGS && controller_state.settingsStickMode == SETTINGS_STICK_CAD_BRIDGE;
+        data[5] = thumbstick_polar_position.angle >> 8;
+        data[6] = thumbstick_polar_position.angle & 0xFF;
+        data[7] = thumbstick_polar_position.distance >> 8;
+        data[8] = thumbstick_polar_position.distance & 0xFF;
+        data[9] = controller_state.deadzone >> 8;
+        data[10] = controller_state.deadzone & 0xFF;
     } else if (data[1] == REPLICAZERON_MODE_GET) {
         if (data[2] >= LAYOUT_COUNT) {
             data[0] = id_unhandled;
@@ -1284,7 +1274,8 @@ bool via_should_process_command_kb(const uint8_t *data, uint8_t length) {
         configuration_hid_active = false;
         return true;
     }
-    if (data[0] != id_get_protocol_version && !(data[0] == id_vial_prefix && data[1] == vial_get_keyboard_id)) {
+    bool cad_stick_poll = data[0] == REPLICAZERON_TITLE_COMMAND && data[1] == REPLICAZERON_CAD_STICK_GET;
+    if (!cad_stick_poll && data[0] != id_get_protocol_version && !(data[0] == id_vial_prefix && data[1] == vial_get_keyboard_id)) {
         configuration_hid_active = true;
         configuration_hid_timer = timer_read32();
     }

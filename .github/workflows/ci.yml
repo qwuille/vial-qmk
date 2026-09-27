@@ -12,6 +12,21 @@ env:
 permissions: {}
 
 jobs:
+  test-cad-bridge:
+    name: Test CAD bridge
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: (actions) Checkout Vial repo
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+
+    - name: Check Python sources and bridge protocol
+      run: |
+        python3 -m compileall -q tools/replicazeron-cad-bridge
+        python3 -m unittest discover -s tools/replicazeron-cad-bridge/tests -v
+
   check-uid:
     name: Check Vial UIDs
     runs-on: ubuntu-latest

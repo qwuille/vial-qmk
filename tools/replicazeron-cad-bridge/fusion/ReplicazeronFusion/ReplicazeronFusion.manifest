@@ -1,0 +1,10 @@
+{
+  "autodeskProduct": "Fusion360",
+  "type": "addin",
+  "id": "5f9445c8-60a8-46e0-8674-6e395cf18e69",
+  "author": "Replicazeron contributors",
+  "description": "Rotate the Fusion viewport with the Replicazeron analog thumbstick without moving the mouse pointer.",
+  "version": "0.1.0",
+  "runOnStartup": true,
+  "supportedOS": "windows"
+}
