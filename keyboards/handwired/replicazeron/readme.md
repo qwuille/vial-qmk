@@ -14,15 +14,7 @@ project. Printable models are not distributed by this firmware repository.
 See [HARDWARE.md](HARDWARE.md) for the complete component, pin, power, and
 controller-compatibility guide.
 
-This is a config to run a 3dprinted keyboard controller with qmk based on this project:
-
-https://sites.google.com/view/alvaro-rosati/azeron-keypad-diy-tutorial
-
 Some additional and redesigned files (i.e. for the OLED-display) can be found in [this repo](https://github.com/9R/replicazeron).
-
-![Replicazeron](https://i.imgur.com/WTys4SM.jpg)
-
-[Gallery](https://imgur.com/a/2qlEPVl)
 
 ## Features
 

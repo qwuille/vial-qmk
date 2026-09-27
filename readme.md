@@ -102,6 +102,15 @@ documented core integrations, not every inherited keyboard definition.
 - [Interactive STM32F103 wiring guide](docs/replicazeron-stm32f103-wiring-diagram.html) and
   [offline PDF](docs/Replicazeron_STM32F103_Wiring_Diagram.pdf)
 
+### Image and diagram credits
+
+The interactive wiring diagrams, their SVG artwork, and the downloadable PDF
+versions were created specifically for this firmware repository and are
+maintained by the Replicazeron project contributors. The WebHID controller
+preview and `RZ` mark are code-generated artwork maintained in the
+[Replicazeron WebHID repository](https://github.com/qwuille/replicazeron_webhid).
+No third-party controller photographs are embedded in this project's pages.
+
 ### Hardware, models, and earlier build resources
 
 - [Incedius Replicazeron](https://github.com/incedius/replicazeron) for

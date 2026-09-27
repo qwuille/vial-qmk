@@ -38,10 +38,6 @@ quantum/version.h
 *.uf2
 *.vfw
 
-# Maintained Replicazeron release images
-!/handwired_replicazeron_stm32f103_vial.bin
-!/handwired_replicazeron_rp2040_vial.uf2
-
 # DD config at wrong location
 /keyboards/**/keymaps/*/info.json
 /keyboards/**/keymaps/*/keyboard.json
