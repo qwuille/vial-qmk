@@ -300,7 +300,9 @@ Each layout's selection is saved in EEPROM.
 The OLED `MODE` menu first asks which layout to edit. Its `Settings tools`
 entry controls only the Settings layer and cycles scroll/cursor, middle-button
 drag, Shift+middle-button drag, and right-button drag. The same separate controls
-are available in the standalone WebHID Control Deck.
+are available in the standalone WebHID Control Deck. Selecting Settings releases
+and suppresses any WASD/Faux keys from the playable layer underneath it; only
+the selected mouse/scroll tool receives thumbstick movement.
 
 The OLED `SCREEN` menu similarly chooses a playable layout and cycles its
 display design. Input monitor shows live stick direction, strength, and held
@@ -329,8 +331,8 @@ Existing STM32 Joystick layouts migrate to WASD after this update.
 A separately published DirectInput compatibility variant restores the HID
 joystick and all 32 Vial-bindable gamepad buttons without removing any current
 feature. Build it by adding `-e REPLICAZERON_STM32_DIRECTINPUT=yes` to the STM32
-QMK command. It leaves only 80 application-flash bytes free in the verified
-build, so it
+QMK command. It leaves fewer than 64 application-flash bytes free in the
+verified build, so it
 is feature-frozen: maintenance corrections remain possible, but new features
 target Standard and RP2040. WebHID identifies the running variant and hardware
 revision, defaults to its matching update channel, and offers an explicit STM32

@@ -16,7 +16,9 @@ existing models and the earlier hardware documentation should use the separate
 - Per-layout WASD and configurable Faux analog modes. RP2040 additionally has
   Joystick and XInput + keyboard layouts with freely assignable gamepad buttons.
 - Settings-layer proportional page scrolling with a cursor toggle, plus CAD
-  middle-drag, Shift+middle-drag, and right-drag thumbstick modes.
+  middle-drag, Shift+middle-drag, and right-drag thumbstick modes. Entering
+  Settings releases and suppresses the playable layer's WASD/Faux keys so CAD
+  shortcuts cannot leak into the application.
 - VialRGB/OpenRGB control through the existing Vial Raw HID interface.
 - Firmware-controlled lighting with reactive, splash, multisplash,
   reactive-cross, and reactive-wide effects. The RP2040 build provides sixteen

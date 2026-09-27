@@ -1586,7 +1586,10 @@ void housekeeping_task_kb(void) {
 #    ifdef RGB_MATRIX_ENABLE
     replicazeron_rgb_set_joystick_activity(filtered_axes[0], filtered_axes[1]);
 #    endif
-    if (controller_state.wasdMode) {
+    /* Settings owns the stick for mouse/scroll navigation.  A playable layer
+     * may still have WASD or Faux active underneath it, but those keys must
+     * never leak into CAD applications while Settings is selected. */
+    if (controller_state.highestActiveLayer < LAYOUT_COUNT && controller_state.wasdMode) {
         thumbstick(controller_state, filtered_axes[0], filtered_axes[1]);
     }
 #    ifdef LEDS_ENABLE
@@ -2496,6 +2499,8 @@ layer_state_t layer_state_set_kb(layer_state_t state) {
         controller_state.activeLayout = controller_state.highestActiveLayer;
         controller_state.layoutSelection = controller_state.activeLayout;
         apply_layout_mode(controller_state.activeLayout);
+    } else {
+        release_wasd_keys();
     }
 
     return state;
