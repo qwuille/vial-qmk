@@ -28,7 +28,7 @@ jobs:
   build-default:
     name: Build default keymaps for Vial
     runs-on: ubuntu-latest
-    container: ghcr.io/qmk/qmk_cli@sha256:2dc05fc9f32efebd6b05c2b8676ee548358bc7e151e9dbf4dac6b6eed4513b07 
+    container: ghcr.io/qmk/qmk_cli@sha256:b7d7fa8fb4432b569931de5ad59098cb788f440ed61a62c5126746b71aee0f4a
     env:
       KEYMAP: default
 
@@ -66,7 +66,7 @@ jobs:
   build-vial:
     name: Build Vial keymaps
     runs-on: ubuntu-latest
-    container: ghcr.io/qmk/qmk_cli@sha256:2dc05fc9f32efebd6b05c2b8676ee548358bc7e151e9dbf4dac6b6eed4513b07 
+    container: ghcr.io/qmk/qmk_cli@sha256:b7d7fa8fb4432b569931de5ad59098cb788f440ed61a62c5126746b71aee0f4a
     env:
       KEYMAP: vial
 
