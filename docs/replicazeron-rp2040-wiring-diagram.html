@@ -1,0 +1,1679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Replicazeron — Raspberry Pi Pico (RP2040) wiring diagram</title>
+<style>
+  @page { size: A3 landscape; margin: 10mm; }
+  @page schematic { size: A3 landscape; margin: 10mm; }
+  @media print {
+    html, body { background: white !important; color: #10242a !important; }
+    body { zoom: 1; }
+    .page { background: white !important; }
+    .main-schematic { filter: none !important; }
+    .page { width: 400mm; min-height: 277mm; }
+    .schematic-page { page: schematic; width: 400mm; min-height: 277mm; }
+    .page:not(.schematic-page) { width: 400mm; min-height: 277mm; zoom: 1; }
+    .interactive-page { display: none !important; }
+    .document-toolbar { display: none !important; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #10242a; background: white; font: 12px/1.32 Arial, sans-serif; }
+  .page { width: 279mm; min-height: 192mm; page-break-after: always; position: relative; }
+  .page:last-child { page-break-after: auto; }
+  h1 { margin: 0; font-size: 23px; letter-spacing: .2px; }
+  h2 { margin: 0 0 5px; font-size: 16px; color: #07566a; }
+  h3 { margin: 0 0 4px; font-size: 12px; color: #07566a; text-transform: uppercase; letter-spacing: .5px; }
+  p { margin: 3px 0 7px; }
+  .subtitle { color: #527078; margin: 2px 0 8px; }
+  .tag { display: inline-block; padding: 2px 7px; border-radius: 10px; background: #e6f5f7; color: #07566a; font-weight: 700; }
+  .warning { border: 2px solid #c63d24; background: #fff2ee; padding: 7px 9px; border-radius: 7px; color: #712312; }
+  .note { border-left: 4px solid #0b8aa4; background: #edf9fb; padding: 6px 9px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid3 { display: grid; grid-template-columns: 1.05fr 1fr 1fr; gap: 8px; }
+  .card { border: 1px solid #9ab3b9; border-radius: 7px; padding: 7px; break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th, td { border: 1px solid #b7c8cc; padding: 3px 5px; text-align: left; }
+  th { background: #dff1f4; color: #07495a; }
+  code, .mono { font-family: Consolas, "Courier New", monospace; }
+  .small { font-size: 9px; color: #405b62; }
+  .footer { position: absolute; bottom: 0; left: 0; right: 0; color: #60777c; font-size: 9px; border-top: 1px solid #cad8da; padding-top: 3px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: Arial, sans-serif; fill: #10242a; }
+  svg .wire { stroke: #235865; stroke-width: 2; fill: none; }
+  svg .power { stroke: #c63d24; stroke-width: 2.5; fill: none; }
+  svg .ground { stroke: #3c4a50; stroke-width: 2.5; fill: none; }
+  svg .signal { stroke: #087d98; stroke-width: 2.2; fill: none; }
+  svg .matrix { stroke: #6750a4; stroke-width: 2; fill: none; }
+  svg .part { fill: #f7fbfc; stroke: #49727c; stroke-width: 1.5; }
+  svg .mcu { fill: #dff3f6; stroke: #07566a; stroke-width: 2; }
+  svg .danger { fill: #fff0eb; stroke: #c63d24; stroke-width: 1.8; }
+  svg .label { font-size: 12px; font-weight: 700; }
+  svg .tiny { font-size: 9px; }
+  svg .pin { font-size: 10px; font-family: Consolas, monospace; }
+  svg .sheet { fill: #fbfdfd; stroke: #7f9da4; stroke-width: 1.2; }
+  svg .bus { stroke: #235865; stroke-width: 1.6; fill: none; }
+  svg .component { stroke: #07566a; stroke-width: 1.5; fill: none; }
+  svg .junction { fill: #07566a; }
+  svg .net-label { font-size: 8px; font-family: Consolas, monospace; font-weight: 700; fill: #6750a4; }
+  svg .group-title { font-size: 11px; font-weight: 700; fill: #07566a; }
+  .schematic-page { width: 400mm; min-height: 277mm; }
+  .schematic-page > h1,
+  .schematic-page > .subtitle,
+  .schematic-page > svg,
+  .schematic-page > .footer { display: none; }
+  .main-schematic { display: block; width: 100%; height: auto; }
+  .interactive-page { width: min(480mm, 100vw); min-height: 277mm; padding: 18px 22px 28px; background: #f3f7f8; }
+  #interactive-matrix-guide { scroll-margin-top: 54px; }
+  .interactive-page h1 { color: #10242a; }
+  .interactive-intro { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 14px; }
+  .interactive-intro p { max-width: 860px; margin: 4px 0 0; color: #527078; font-size: 13px; }
+  .interactive-badge { white-space: nowrap; border: 1px solid #8aabb2; border-radius: 999px; padding: 6px 11px; background: white; color: #07566a; font-weight: 700; }
+  .flow-toolbar { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 12px; margin-bottom: 12px; }
+  .rgb-overhead { display: grid; grid-template-columns: minmax(210px, .55fr) 1fr; gap: 14px; align-items: center; margin: 12px 12px 0; border: 1px solid #8aa4aa; border-radius: 9px; padding: 10px 14px; background: white; }
+  .rgb-overhead strong { display: block; color: #07566a; }
+  .rgb-overhead small { color: #527078; }
+  .rgb-pixels { display: grid; grid-template-columns: repeat(11, 1fr); gap: 7px; align-items: center; }
+  .rgb-pixel { aspect-ratio: 1; max-width: 34px; border: 2px solid #527078; border-radius: 50%; background: conic-gradient(#f25f5c, #ffe066, #70c1b3, #247ba0, #9b5de5, #f25f5c); box-shadow: inset 0 0 0 5px white; }
+  .rgb-data-route { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; border-top: 1px dashed #9ab3b9; padding-top: 7px; color: #405b62; font: 700 10px Consolas, "Courier New", monospace; }
+  .flow-control { margin: 0; border: 1px solid #9ab3b9; border-radius: 8px; padding: 8px 10px 10px; background: white; }
+  .flow-control legend { padding: 0 5px; color: #07566a; font-weight: 700; }
+  .net-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+  .net-button, .clear-selection { border: 1px solid #8aa4aa; border-radius: 5px; padding: 6px 10px; background: #f7fbfc; color: #18363d; font: 700 11px Consolas, "Courier New", monospace; cursor: pointer; }
+  .net-button:hover, .net-button:focus-visible, .clear-selection:hover, .clear-selection:focus-visible { outline: 2px solid #8ed6e4; outline-offset: 1px; background: #edf9fb; }
+  .net-button.row-active { border-color: #087d98; background: #d9f3f8; color: #07566a; }
+  .net-button.col-active { border-color: #6750a4; background: #eee9fb; color: #493985; }
+  .clear-selection { align-self: center; min-height: 38px; padding-inline: 16px; }
+  .explorer-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  .flow-canvas { min-width: 0; overflow-x: auto; border: 1px solid #8aa4aa; border-radius: 9px; background: white; box-shadow: 0 2px 10px rgba(7, 73, 90, .08); }
+  #matrix-explorer { width: 100%; min-width: 1480px; height: auto; background: #fbfdfd; }
+  #matrix-explorer .grid-line { stroke: #e4ecee; stroke-width: 1; }
+  #matrix-explorer .flow-node { fill: #f7fbfc; stroke: #7f9da4; stroke-width: 1.5; }
+  #matrix-explorer .node-header { fill: #e6f5f7; stroke: #7f9da4; stroke-width: 1.2; }
+  #matrix-explorer .pico-node { fill: #dff3f6; stroke: #07566a; stroke-width: 2; }
+  #matrix-explorer .flow-title { font-size: 14px; font-weight: 700; fill: #07566a; }
+  #matrix-explorer .flow-text { font-size: 10px; fill: #405b62; }
+  #matrix-explorer .flow-mono { font: 700 10px Consolas, "Courier New", monospace; fill: #10242a; }
+  #matrix-explorer .row-edge, #matrix-explorer .col-edge { fill: none; stroke: #8fa5aa; stroke-width: 3; transition: opacity .15s, stroke .15s, stroke-width .15s; }
+  #matrix-explorer .cable-secondary-overlay { display: none; fill: none; stroke-width: 2.5; stroke-dasharray: 7 5; pointer-events: none; }
+  #matrix-explorer .row-edge.active-row { stroke: #087d98; stroke-width: 6; }
+  #matrix-explorer .col-edge.active-col { stroke: #6750a4; stroke-width: 6; }
+  #matrix-explorer .matrix-cell { cursor: pointer; transition: opacity .15s; }
+  #matrix-explorer .cell-box { fill: white; stroke: #7f9da4; stroke-width: 1.3; }
+  #matrix-explorer .cell-secondary-overlay { display: none; fill: none; stroke-width: 3; stroke-dasharray: 8 5; pointer-events: none; }
+  #matrix-explorer .matrix-cell.row-context .cell-box { fill: #e4f7fa; stroke: #087d98; stroke-width: 2; }
+  #matrix-explorer .matrix-cell.col-context .cell-box { fill: #f0ecfb; stroke: #6750a4; stroke-width: 2; }
+  #matrix-explorer .matrix-cell.intersection .cell-box { fill: #fff1cc; stroke: #c77800; stroke-width: 3; }
+  #matrix-explorer .matrix-cell.intersection .flow-mono { fill: #7a4300; }
+  #matrix-explorer .completion-toggle { cursor: pointer; }
+  #matrix-explorer .completion-ring { fill: #ffffff; stroke: #6f8a90; stroke-width: 2; }
+  #matrix-explorer .completion-check { fill: #ffffff; font-size: 14px; font-weight: 900; opacity: 0; pointer-events: none; }
+  #matrix-explorer .matrix-cell.completed .cell-box { fill: #e5f7ed; stroke: #248554; stroke-width: 2; }
+  #matrix-explorer .matrix-cell.completed .completion-ring { fill: #248554; stroke: #17683f; }
+  #matrix-explorer .matrix-cell.completed .completion-check { opacity: 1; }
+  #matrix-explorer .port { fill: #ffffff; stroke: #49727c; stroke-width: 2; }
+  #matrix-explorer .active-row-port { fill: #087d98; stroke: #07566a; }
+  #matrix-explorer .active-col-port { fill: #6750a4; stroke: #493985; }
+  #matrix-explorer .dimmed { opacity: .12; }
+  #matrix-explorer .click-target { cursor: pointer; }
+  #matrix-explorer .peripheral-zone { fill: #f3f8f9; stroke: #8aa4aa; stroke-width: 1.5; }
+  #matrix-explorer .component-node { fill: #ffffff; stroke: #7f9da4; stroke-width: 1.5; }
+  #matrix-explorer .component-node-header { fill: #e6f5f7; stroke: #7f9da4; stroke-width: 1.2; }
+  #matrix-explorer .peripheral-path-hit { fill: #f7fbfc; stroke: #cad8da; stroke-width: 1; }
+  #matrix-explorer .peripheral-edge { fill: none; stroke: #8fa5aa; stroke-width: 4; stroke-linecap: round; transition: opacity .15s, stroke .15s, stroke-width .15s; }
+  #matrix-explorer .peripheral-secondary { display: none; fill: none; stroke-width: 2.5; stroke-dasharray: 7 5; pointer-events: none; }
+  #matrix-explorer .peripheral-flow-path.selected .peripheral-path-hit { fill: #fff1cc; stroke: #c77800; stroke-width: 2; }
+  #matrix-explorer .peripheral-flow-path.completed .peripheral-path-hit { fill: #e5f7ed; stroke: #248554; }
+  #matrix-explorer .peripheral-flow-path.completed .completion-ring { fill: #248554; stroke: #17683f; }
+  #matrix-explorer .peripheral-flow-path.completed .completion-check { opacity: 1; }
+  #matrix-explorer .peripheral-option { cursor: pointer; }
+  #matrix-explorer .peripheral-source.selected text { fill: #9b5b00; font-weight: 800; }
+  #matrix-explorer .peripheral-source.selected .port { fill: #f6a800; stroke: #7a4300; }
+  #matrix-explorer .peripheral-option rect { fill: #fff8e6; stroke: #c77800; stroke-width: 1.3; }
+  #matrix-explorer .peripheral-option.enabled rect { fill: #e5f7ed; stroke: #248554; stroke-width: 2; }
+  .flow-inspector { display: grid; grid-template-columns: minmax(300px, 1.2fr) minmax(300px, 1fr) minmax(300px, 1fr); gap: 12px 18px; border: 1px solid #8aa4aa; border-radius: 9px; padding: 14px; background: white; }
+  .flow-inspector > h2, .flow-inspector > .selection-pills { grid-column: 1 / -1; }
+  .flow-inspector > h2 { margin: 0; }
+  .flow-inspector > .selection-pills { margin-bottom: 0; }
+  .flow-inspector h2 { margin-bottom: 8px; }
+  .selection-pills { display: flex; flex-wrap: wrap; gap: 6px; min-height: 27px; margin-bottom: 10px; }
+  .selection-pill { display: inline-block; border-radius: 999px; padding: 4px 8px; font: 700 10px Consolas, "Courier New", monospace; }
+  .selection-pill.row { color: #07566a; background: #d9f3f8; }
+  .selection-pill.col { color: #493985; background: #eee9fb; }
+  .selection-pill.none { color: #60777c; background: #edf2f3; }
+  .connection-card { border-left: 4px solid #0b8aa4; padding: 8px 10px; background: #edf9fb; min-height: 125px; }
+  .connection-card h3 { margin: 0 0 6px; color: #07566a; text-transform: none; letter-spacing: 0; }
+  .connection-card p { margin: 4px 0; }
+  .connection-card code { font-weight: 700; }
+  .completion-button { width: 100%; margin-top: 8px; border: 1px solid #248554; border-radius: 6px; padding: 7px 9px; background: #e5f7ed; color: #17683f; font-weight: 700; cursor: pointer; }
+  .wire-color-control { display: grid; gap: 6px; margin-top: 8px; }
+  .wire-color-row { display: grid; grid-template-columns: minmax(92px, auto) 42px 1fr; gap: 6px; align-items: center; }
+  .wire-color-control label { font-size: 11px; font-weight: 700; }
+  .wire-color-control .secondary-color-label { display: flex; align-items: center; gap: 5px; }
+  .wire-color-control .secondary-color-label input { width: 15px; height: 15px; margin: 0; }
+  .wire-color-control input[type="color"] { width: 42px; height: 30px; border: 1px solid #8aa4aa; border-radius: 5px; padding: 2px; background: white; cursor: pointer; }
+  .wire-color-button { border: 1px solid #8aa4aa; border-radius: 5px; padding: 6px 8px; background: #f7fbfc; color: #18363d; font-weight: 700; cursor: pointer; }
+  .wire-color-remove { justify-self: end; border: 0; padding: 2px; background: transparent; color: #527078; font-size: 10px; text-align: right; text-decoration: underline; cursor: pointer; }
+  .solder-summary { margin-top: 10px; border: 1px solid #9ab3b9; border-radius: 7px; padding: 9px; background: #f7fbfc; }
+  .solder-summary-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .solder-summary progress { width: 100%; height: 9px; margin-top: 7px; accent-color: #248554; }
+  .clear-checkmarks { border: 0; padding: 2px 4px; background: transparent; color: #527078; font-size: 10px; text-decoration: underline; cursor: pointer; }
+  .wiring-data-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }
+  .wiring-data-button { border: 1px solid #8aa4aa; border-radius: 5px; padding: 6px 7px; background: #f7fbfc; color: #18363d; font-size: 11px; font-weight: 700; cursor: pointer; }
+  .wiring-data-note { grid-column: 1 / -1; margin: 0; color: #60777c; font-size: 9px; }
+  .cookie-notice { display: flex; align-items: center; gap: 12px; margin-top: 12px; border: 1px solid #8aabb2; border-radius: 8px; padding: 9px 11px; background: #edf9fb; color: #284b53; font-size: 10px; }
+  .cookie-notice[hidden] { display: none; }
+  .cookie-notice p { flex: 1; margin: 0; }
+  .cookie-notice button { border: 1px solid #56818a; border-radius: 5px; padding: 5px 9px; background: white; color: #07566a; font-weight: 700; cursor: pointer; }
+  .interactive-peripherals { margin: 0; border-top: 2px solid #8aabb2; padding: 14px; }
+  .interactive-peripherals > p { margin: 3px 0 10px; color: #527078; }
+  .hardware-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .hardware-zone { border: 1px solid #8aa4aa; border-radius: 8px; padding: 10px; background: white; }
+  .hardware-zone h3 { margin-bottom: 6px; }
+  .hardware-zone.thumb-side { border-top: 4px solid #6750a4; }
+  .hardware-zone.rgb-zone { border-top: 4px solid #0b8aa4; }
+  .hardware-zone.logic-zone { border-top: 4px solid #c77800; }
+  .hardware-zone.logic-zone { grid-column: 1 / -1; }
+  .path-list { display: grid; gap: 6px; }
+  .peripheral-path { display: grid; grid-template-columns: auto minmax(70px, .7fr) minmax(100px, 1.4fr) 76px; gap: 7px; align-items: center; border: 1px solid #cad8da; border-radius: 6px; padding: 6px 7px; background: #f7fbfc; }
+  .peripheral-path.completed { border-color: #248554; background: #e5f7ed; }
+  .peripheral-path input[type="checkbox"] { width: 17px; height: 17px; accent-color: #248554; }
+  .peripheral-path input[type="color"] { width: 36px; height: 28px; border: 1px solid #8aa4aa; border-radius: 5px; padding: 2px; background: white; cursor: pointer; }
+  .path-colors { display: grid; grid-template-columns: auto 36px; gap: 3px 4px; align-items: center; justify-content: end; }
+  .path-colors .path-primary-color { grid-column: 2; }
+  .path-colors label { display: flex; align-items: center; gap: 3px; color: #527078; font-size: 9px; font-weight: 700; }
+  .path-colors .path-secondary-toggle { width: 14px; height: 14px; margin: 0; }
+  .path-name { font-weight: 700; }
+  .path-route { color: #405b62; font: 700 10px Consolas, "Courier New", monospace; }
+  .layer-path-button { width: 100%; border: 1px solid #6750a4; border-radius: 6px; padding: 7px; background: #f0ecfb; color: #493985; font-weight: 700; cursor: pointer; }
+  .logic-choice { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+  .logic-choice input { margin-top: 2px; }
+  .logic-details { border-left: 3px solid #c77800; padding: 6px 8px; background: #fff8e6; font-size: 10px; }
+  .logic-details[hidden] { display: none; }
+  .build-tip { margin-top: 10px; border-top: 1px solid #cad8da; padding-top: 9px; color: #405b62; }
+  .build-tip ol { margin: 5px 0 0; padding-left: 18px; }
+  .flow-legend { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 10px; color: #405b62; font-size: 10px; }
+  .legend-line { display: inline-block; width: 28px; height: 0; margin-right: 5px; vertical-align: middle; border-top: 4px solid #8fa5aa; }
+  .legend-line.row { border-color: #087d98; }
+  .legend-line.col { border-color: #6750a4; }
+  .legend-cell { display: inline-block; width: 18px; height: 12px; margin-right: 5px; vertical-align: middle; border: 2px solid #c77800; background: #fff1cc; }
+  @media (max-width: 1050px) {
+    .flow-toolbar { grid-template-columns: 1fr; }
+    .explorer-layout { grid-template-columns: 1fr; }
+    .flow-inspector { order: -1; }
+    .hardware-grid { grid-template-columns: 1fr; }
+    .rgb-overhead { grid-template-columns: 1fr; }
+    .peripheral-path { grid-template-columns: auto 1fr auto; }
+    .path-route { grid-column: 2 / -1; }
+  }
+  @media screen {
+    .page, .document-toolbar { margin-left: auto; margin-right: auto; }
+    #peripheral-circuits { padding: 18px 22px 28px; }
+    body:has(#interactive-matrix-guide:target) .schematic-page { display: none; }
+    body:has(#peripheral-circuits:target) > .page:not(#peripheral-circuits),
+    body:has(#harness-and-bring-up:target) > .page:not(#harness-and-bring-up) { display: none; }
+  }
+  .document-toolbar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: min(400mm, 100%); padding: 9px 14px; border-bottom: 1px solid #91a9ae; background: rgba(243,247,248,.96); backdrop-filter: blur(8px); color: #18363d; }
+  .document-toolbar strong { margin-right: auto; }
+  .document-toolbar a, .document-toolbar select { border: 1px solid #829da3; border-radius: 6px; padding: 6px 9px; background: white; color: #07566a; font: 700 11px Arial, sans-serif; text-decoration: none; }
+  html[data-theme="dark"] { color-scheme: dark; background: #071014; }
+  html[data-theme="dark"] body { background: #071014; }
+  html[data-theme="dark"] .page.schematic-page { background: #071014; }
+  html[data-theme="dark"] .main-schematic { filter: invert(.9) hue-rotate(155deg) saturate(.8) brightness(.92); }
+  html[data-theme="dark"] .document-toolbar { border-color: #37545b; background: rgba(7,16,20,.96); color: #d8e9ec; }
+  html[data-theme="dark"] .document-toolbar a, html[data-theme="dark"] .document-toolbar select { border-color: #45666e; background: #102127; color: #8ed6e4; }
+  html[data-theme="dark"] .interactive-page { background: #071014; color: #d8e9ec; }
+  html[data-theme="dark"] .interactive-page h1, html[data-theme="dark"] .interactive-page h2 { color: #e4f3f5; }
+  html[data-theme="dark"] .interactive-intro p, html[data-theme="dark"] .build-tip, html[data-theme="dark"] .flow-legend { color: #a9c2c7; }
+  html[data-theme="dark"] .interactive-badge, html[data-theme="dark"] .flow-control, html[data-theme="dark"] .flow-inspector { border-color: #395a62; background: #102127; color: #d8e9ec; }
+  html[data-theme="dark"] .net-button, html[data-theme="dark"] .clear-selection { border-color: #45666e; background: #14292f; color: #cbe0e4; }
+  html[data-theme="dark"] .net-button.row-active { border-color: #36a7bd; background: #10343d; color: #9ee3ef; }
+  html[data-theme="dark"] .net-button.col-active { border-color: #9b83d4; background: #292044; color: #d4c6f2; }
+  html[data-theme="dark"] .rgb-overhead, html[data-theme="dark"] .hardware-zone { border-color: #395a62; background: #102127; color: #d8e9ec; }
+  html[data-theme="dark"] .rgb-overhead strong { color: #8ed6e4; }
+  html[data-theme="dark"] .rgb-overhead small, html[data-theme="dark"] .interactive-peripherals > p { color: #a9c2c7; }
+  html[data-theme="dark"] .rgb-pixel { border-color: #72929a; box-shadow: inset 0 0 0 5px #102127; }
+  html[data-theme="dark"] .rgb-data-route { border-color: #395a62; color: #a9c2c7; }
+  html[data-theme="dark"] .peripheral-path { border-color: #395a62; background: #14292f; }
+  html[data-theme="dark"] .peripheral-path.completed { border-color: #4ac57f; background: #123827; }
+  html[data-theme="dark"] .peripheral-path input[type="color"] { border-color: #45666e; background: #14292f; }
+  html[data-theme="dark"] .path-route { color: #a9c2c7; }
+  html[data-theme="dark"] .path-colors label { color: #a9c2c7; }
+  html[data-theme="dark"] .layer-path-button { border-color: #9b83d4; background: #292044; color: #d4c6f2; }
+  html[data-theme="dark"] .logic-details { background: #493714; color: #ffe0a3; }
+  html[data-theme="dark"] .flow-canvas, html[data-theme="dark"] #matrix-explorer { border-color: #395a62; background: #09161b; }
+  html[data-theme="dark"] #matrix-explorer .grid-line { stroke: #173038; }
+  html[data-theme="dark"] #matrix-explorer .flow-node { fill: #0e2026; stroke: #42646c; }
+  html[data-theme="dark"] #matrix-explorer .node-header { fill: #15333b; stroke: #42646c; }
+  html[data-theme="dark"] #matrix-explorer .pico-node { fill: #102b33; stroke: #48a7ba; }
+  html[data-theme="dark"] #matrix-explorer .flow-title { fill: #8ed6e4; }
+  html[data-theme="dark"] #matrix-explorer .flow-text { fill: #a9c2c7; }
+  html[data-theme="dark"] #matrix-explorer .flow-mono { fill: #d8e9ec; }
+  html[data-theme="dark"] #matrix-explorer .cell-box { fill: #102127; stroke: #52747c; }
+  html[data-theme="dark"] #matrix-explorer .matrix-cell.row-context .cell-box { fill: #10343d; stroke: #36a7bd; }
+  html[data-theme="dark"] #matrix-explorer .matrix-cell.col-context .cell-box { fill: #292044; stroke: #9b83d4; }
+  html[data-theme="dark"] #matrix-explorer .matrix-cell.intersection .cell-box { fill: #493714; stroke: #e5a634; }
+  html[data-theme="dark"] #matrix-explorer .matrix-cell.intersection .flow-mono { fill: #ffd989; }
+  html[data-theme="dark"] #matrix-explorer .port { fill: #102127; stroke: #72929a; }
+  html[data-theme="dark"] #matrix-explorer .completion-ring { fill: #102127; stroke: #72929a; }
+  html[data-theme="dark"] #matrix-explorer .matrix-cell.completed .cell-box { fill: #123827; stroke: #4ac57f; }
+  html[data-theme="dark"] #matrix-explorer .matrix-cell.completed .completion-ring { fill: #2a9d60; stroke: #76dfa2; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-zone { fill: #0b1b20; stroke: #42646c; }
+  html[data-theme="dark"] #matrix-explorer .component-node { fill: #0e2026; stroke: #42646c; }
+  html[data-theme="dark"] #matrix-explorer .component-node-header { fill: #15333b; stroke: #42646c; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-path-hit { fill: #102127; stroke: #395a62; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-flow-path.selected .peripheral-path-hit { fill: #493714; stroke: #e5a634; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-flow-path.completed .peripheral-path-hit { fill: #123827; stroke: #4ac57f; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-flow-path.completed .completion-ring { fill: #2a9d60; stroke: #76dfa2; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-option rect { fill: #493714; stroke: #e5a634; }
+  html[data-theme="dark"] #matrix-explorer .peripheral-option.enabled rect { fill: #123827; stroke: #4ac57f; }
+  html[data-theme="dark"] .selection-pill.row { color: #9ee3ef; background: #10343d; }
+  html[data-theme="dark"] .selection-pill.col { color: #d4c6f2; background: #292044; }
+  html[data-theme="dark"] .selection-pill.none { color: #b4c9cd; background: #1a2b30; }
+  html[data-theme="dark"] .connection-card { background: #173039; color: #d8e9ec; }
+  html[data-theme="dark"] .completion-button { border-color: #4ac57f; background: #123827; color: #a5efc2; }
+  html[data-theme="dark"] .wire-color-control input[type="color"], html[data-theme="dark"] .wire-color-button,
+  html[data-theme="dark"] .wiring-data-button { border-color: #45666e; background: #14292f; color: #d8e9ec; }
+  html[data-theme="dark"] .wire-color-remove, html[data-theme="dark"] .wiring-data-note { color: #9eb9be; }
+  html[data-theme="dark"] .solder-summary { border-color: #395a62; background: #102127; color: #d8e9ec; }
+  html[data-theme="dark"] .clear-checkmarks { color: #9eb9be; }
+  html[data-theme="dark"] .cookie-notice { border-color: #395a62; background: #102b33; color: #cbe0e4; }
+  html[data-theme="dark"] .cookie-notice button { border-color: #45666e; background: #14292f; color: #8ed6e4; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) { background: #071014; color: #d8e9ec; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) h1,
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) h2,
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) h3 { color: #8ed6e4; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) .subtitle,
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) .small,
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) .footer { color: #9eb9be; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) .card { border-color: #395a62; background: #0d1c21; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) th { border-color: #42646c; background: #15333b; color: #9ee3ef; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) td { border-color: #395a62; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) .note { background: #102b33; color: #d8e9ec; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) .warning { border-color: #c96755; background: #351a17; color: #ffd2c9; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) svg text { fill: #d8e9ec; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) svg .part,
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) svg .sheet { fill: #0f2026; stroke: #52747c; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) svg .danger { fill: #351a17; stroke: #c96755; }
+  html[data-theme="dark"] .page:not(.schematic-page):not(.interactive-page) svg .tiny { fill: #9eb9be; }
+</style>
+</head>
+<body>
+
+<nav class="document-toolbar" aria-label="Wiring document controls">
+  <strong>RP2040 wiring</strong>
+  <a href="Replicazeron_RP2040_Wiring_Diagram.pdf" download>Download PDF</a>
+  <a href="replicazeron-stm32f103-wiring-diagram.html">STM32 / Blue Pill diagram</a>
+  <label>Theme <select id="theme-select"><option value="light">Light</option><option value="dark">Dark</option><option value="system">System</option></select></label>
+</nav>
+<script>
+(() => {
+  const select = document.getElementById('theme-select');
+  const media = matchMedia('(prefers-color-scheme: dark)');
+  let selected = 'system';
+  try { selected = localStorage.getItem('replicazeron-wiring-theme') || 'system'; } catch {}
+  if (!['light', 'dark', 'system'].includes(selected)) selected = 'system';
+  const apply = () => document.documentElement.dataset.theme = selected === 'system' ? (media.matches ? 'dark' : 'light') : selected;
+  select.value = selected;
+  select.addEventListener('change', () => { selected = select.value; try { localStorage.setItem('replicazeron-wiring-theme', selected); } catch {} apply(); });
+  media.addEventListener?.('change', apply);
+  addEventListener('beforeprint', () => { document.documentElement.dataset.theme = 'light'; });
+  addEventListener('afterprint', apply);
+  apply();
+})();
+</script>
+
+<section class="page schematic-page">
+  <h1>Replicazeron — Raspberry Pi Pico wiring diagram</h1>
+  <div class="subtitle">Standard Pico / RP2040 · <span class="mono">handwired/replicazeron/rp2040</span> · 6×5 COL2ROW matrix · revision 2026-09-26</div>
+  <img class="main-schematic" src="replicazeron-rp2040-wiring-diagram.svg" alt="Complete Replicazeron RP2040 assembly wiring diagram">
+
+  <svg viewBox="0 0 1120 610" role="img" aria-label="Complete Replicazeron RP2040 wiring diagram">
+    <defs>
+      <!-- Normally-open switch followed by a 1N4148; cathode bar is on the ROW side. -->
+      <g id="matrix-cell">
+        <path d="M0 0 H18 M22 0 L42 -8 M46 0 H58" stroke="#07566a" stroke-width="1.8" fill="none"/>
+        <circle cx="20" cy="0" r="2.2" class="junction"/><circle cx="44" cy="0" r="2.2" class="junction"/>
+        <path d="M58 -8 V8 L73 0 Z M75 -9 V9 M75 0 H88" stroke="#07566a" stroke-width="1.8" fill="none"/>
+      </g>
+    </defs>
+
+    <text x="12" y="17" class="group-title">SWITCH MATRIX — every position has its own normally-open switch and 1N4148 diode</text>
+    <text x="1108" y="17" text-anchor="end" class="tiny">Diode cathode band faces ROW · net labels with the same name are electrically connected</text>
+
+    <!-- Five matrix columns, arranged like 9R's finger/thumb schematic. -->
+    <g transform="translate(10 27)">
+      <rect width="210" height="260" rx="7" class="sheet"/>
+      <text x="10" y="19" class="group-title">Little finger</text><text x="200" y="19" text-anchor="end" class="net-label">COL_0 · GP0 · pin 1</text>
+      <path d="M18 38 V232" class="bus"/><text x="10" y="250" class="tiny">ROW_5: special key</text>
+      <g transform="translate(18 53)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_0</text></g>
+      <g transform="translate(18 85)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_1</text></g>
+      <g transform="translate(18 117)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_2</text></g>
+      <g transform="translate(18 149)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_3</text></g>
+      <g transform="translate(18 181)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_4</text></g>
+      <g transform="translate(18 213)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_5</text></g>
+      <g class="tiny"><text x="155" y="56">key 1</text><text x="155" y="88">key 2</text><text x="155" y="120">key 3</text><text x="155" y="152">key 4</text><text x="155" y="184">key 5</text></g>
+    </g>
+
+    <g transform="translate(228 27)">
+      <rect width="210" height="260" rx="7" class="sheet"/>
+      <text x="10" y="19" class="group-title">Ring finger</text><text x="200" y="19" text-anchor="end" class="net-label">COL_1 · GP1 · pin 2</text>
+      <path d="M18 38 V232" class="bus"/><text x="10" y="250" class="tiny">ROW_5: special key</text>
+      <g transform="translate(18 53)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_0</text></g>
+      <g transform="translate(18 85)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_1</text></g>
+      <g transform="translate(18 117)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_2</text></g>
+      <g transform="translate(18 149)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_3</text></g>
+      <g transform="translate(18 181)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_4</text></g>
+      <g transform="translate(18 213)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_5</text></g>
+      <g class="tiny"><text x="155" y="56">key 1</text><text x="155" y="88">key 2</text><text x="155" y="120">key 3</text><text x="155" y="152">key 4</text><text x="155" y="184">key 5</text></g>
+    </g>
+
+    <g transform="translate(446 27)">
+      <rect width="210" height="260" rx="7" class="sheet"/>
+      <text x="10" y="19" class="group-title">Middle finger</text><text x="200" y="19" text-anchor="end" class="net-label">COL_2 · GP2 · pin 4</text>
+      <path d="M18 38 V232" class="bus"/><text x="10" y="250" class="tiny">ROW_5: base / special key</text>
+      <g transform="translate(18 53)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_0</text></g>
+      <g transform="translate(18 85)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_1</text></g>
+      <g transform="translate(18 117)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_2</text></g>
+      <g transform="translate(18 149)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_3</text></g>
+      <g transform="translate(18 181)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_4</text></g>
+      <g transform="translate(18 213)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_5</text></g>
+      <g class="tiny"><text x="155" y="56">key 1</text><text x="155" y="88">key 2</text><text x="155" y="120">key 3</text><text x="155" y="152">key 4</text><text x="155" y="184">key 5</text></g>
+    </g>
+
+    <g transform="translate(664 27)">
+      <rect width="210" height="260" rx="7" class="sheet"/>
+      <text x="10" y="19" class="group-title">Index finger</text><text x="200" y="19" text-anchor="end" class="net-label">COL_3 · GP3 · pin 5</text>
+      <path d="M18 38 V232" class="bus"/><text x="10" y="250" class="tiny">ROW_5: special key</text>
+      <g transform="translate(18 53)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_0</text></g>
+      <g transform="translate(18 85)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_1</text></g>
+      <g transform="translate(18 117)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_2</text></g>
+      <g transform="translate(18 149)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_3</text></g>
+      <g transform="translate(18 181)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_4</text></g>
+      <g transform="translate(18 213)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_5</text></g>
+      <g class="tiny"><text x="155" y="56">key 1</text><text x="155" y="88">key 2</text><text x="155" y="120">key 3</text><text x="155" y="152">key 4</text><text x="155" y="184">key 5</text></g>
+    </g>
+
+    <g transform="translate(882 27)">
+      <rect width="228" height="260" rx="7" class="sheet"/>
+      <text x="10" y="19" class="group-title">5-way button + joystick push</text><text x="218" y="19" text-anchor="end" class="net-label">COL_4 · GP4 · pin 6</text>
+      <path d="M18 38 V232" class="bus"/>
+      <g transform="translate(18 53)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_0</text><text x="142" y="3" class="tiny">CENTER</text></g>
+      <g transform="translate(18 85)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_1</text><text x="142" y="3" class="tiny">A</text></g>
+      <g transform="translate(18 117)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_2</text><text x="142" y="3" class="tiny">B</text></g>
+      <g transform="translate(18 149)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_3</text><text x="142" y="3" class="tiny">C</text></g>
+      <g transform="translate(18 181)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_4</text><text x="142" y="3" class="tiny">D</text></g>
+      <g transform="translate(18 213)"><use href="#matrix-cell"/><text x="93" y="3" class="net-label">ROW_5</text><text x="142" y="3" class="tiny">JOYSTICK BUTTON</text></g>
+      <text x="10" y="250" class="tiny">Rows 0–4 are contacts in one 5-way switch; row 5 is one separate joystick button.</text>
+    </g>
+
+    <!-- Controller and peripheral nets. -->
+    <rect x="10" y="302" width="430" height="272" rx="8" class="mcu"/>
+    <text x="225" y="325" text-anchor="middle" class="label">U1 · RASPBERRY PI PICO / RP2040</text>
+    <text x="225" y="340" text-anchor="middle" class="tiny">USB connector at top · physical header pin numbers shown</text>
+    <g class="pin">
+      <text x="27" y="367">GP0 / 1   COL_0</text><text x="225" y="367">GP5  / 7   ROW_0</text>
+      <text x="27" y="386">GP1 / 2   COL_1</text><text x="225" y="386">GP6  / 9   ROW_1</text>
+      <text x="27" y="405">GP2 / 4   COL_2</text><text x="225" y="405">GP7  / 10  ROW_2</text>
+      <text x="27" y="424">GP3 / 5   COL_3</text><text x="225" y="424">GP8  / 11  ROW_3</text>
+      <text x="27" y="443">GP4 / 6   COL_4</text><text x="225" y="443">GP9  / 12  ROW_4</text>
+      <text x="27" y="462">GP11/15   LEFT LED</text><text x="225" y="462">GP10 / 14  ROW_5</text>
+      <text x="27" y="481">GP12/16   RIGHT LED</text><text x="225" y="481">GP20 / 26  OLED SDA</text>
+      <text x="27" y="500">GP13/17   WS2812 DATA</text><text x="225" y="500">GP21 / 27  OLED SCL</text>
+      <text x="27" y="519">GP26/31   JOY VRX</text><text x="225" y="519">GP27 / 32  JOY VRY</text>
+      <text x="27" y="538">3V3/36    +3V3</text><text x="225" y="538">AGND / 33  JOY GND</text>
+    </g>
+    <text x="27" y="558" class="tiny">GND: pins 3, 8, 13, 18, 23, 28, 38 · spare GPIO: GP14–19, GP22, GP28</text>
+    <text x="27" y="570" class="tiny">Board pins: RUN 30 · ADC_VREF 35 · 3V3_EN 37 · VSYS 39 · VBUS/USB 5 V 40</text>
+
+    <rect x="455" y="302" width="240" height="126" rx="8" class="sheet"/>
+    <text x="468" y="323" class="group-title">J1 · SSD1306 128×32 OLED</text>
+    <g class="pin"><text x="470" y="348">VCC  → +3V3 / pin 36</text><text x="470" y="367">GND  → GND</text><text x="470" y="386">SDA  → GP20 / pin 26</text><text x="470" y="405">SCL  → GP21 / pin 27</text></g>
+    <text x="468" y="420" class="tiny">I²C pull-ups, if required: 4.7 kΩ to +3V3.</text>
+
+    <rect x="455" y="440" width="240" height="150" rx="8" class="sheet"/>
+    <text x="468" y="461" class="group-title">J2 · PASSIVE ANALOG THUMBSTICK</text>
+    <g class="pin"><text x="470" y="482">VCC  → +3V3 / pin 36</text><text x="470" y="499">GND  → AGND / pin 33</text><text x="470" y="516">VRX  → GP26/ADC0 / pin 31</text><text x="470" y="533">VRY  → GP27/ADC1 / pin 32</text><text x="470" y="550">BUTTON terminal 1 → COL_4 / GP4 / pin 6</text><text x="470" y="567">BUTTON terminal 2 → D30 → ROW_5 / GP10 / pin 14</text></g>
+    <text x="468" y="583" class="tiny">One push button with two isolated terminals. D30 band/bar faces ROW_5.</text>
+
+    <rect x="710" y="302" width="400" height="188" rx="8" class="sheet"/>
+    <text x="723" y="323" class="group-title">LIGHTING</text>
+    <text x="723" y="348" class="pin">+3V3 → 330 Ω–1 kΩ → LEFT LED → GP11 / pin 15</text>
+    <text x="723" y="374" class="pin">+3V3 → 330 Ω–1 kΩ → RIGHT LED → GP12 / pin 16</text>
+    <text x="723" y="400" class="pin">If DIN accepts 3.3 V: GP13 / pin 17 → 330 Ω → WS2812 DIN</text>
+    <text x="723" y="425" class="pin">regulated +5 V → WS2812 VDD     common GND → WS2812 GND</text>
+    <text x="723" y="449" class="tiny">Otherwise add a 74AHCT level shifter before 330 Ω. Addressable RGB default: 11 pixels.</text>
+    <text x="723" y="467" class="tiny">Fit 470–1000 µF at strip input; do not backfeed USB VBUS from an external supply.</text>
+
+    <rect x="710" y="503" width="400" height="71" rx="7" class="danger"/>
+    <text x="910" y="528" text-anchor="middle" font-size="13" font-weight="700" fill="#8b2512">RP2040 GPIO AND ADC INPUTS ARE NOT 5 V TOLERANT</text>
+    <text x="910" y="547" text-anchor="middle" class="pin">Keep GP0–GP28 at 0–3.3 V · power OLED and joystick from +3V3</text>
+    <text x="910" y="563" text-anchor="middle" class="tiny">See page 2 for complete peripheral circuits and safe LED power wiring.</text>
+  </svg>
+  <div class="footer">Page 1/3 · Assembly wiring diagram · Wire colors are intentionally unspecified—label conductors by signal.</div>
+</section>
+
+<section class="page interactive-page" id="interactive-matrix-guide">
+  <div class="interactive-intro">
+    <div>
+      <h1>Interactive complete wiring guide</h1>
+      <p>Select a matrix row, column, switch, or any peripheral cable in the unified flow diagram. Unrelated wiring dims while the inspector shows the exact controller pin and connection order.</p>
+    </div>
+    <div class="interactive-badge">HTML only · not included in PDF</div>
+  </div>
+
+  <div class="flow-toolbar" aria-label="Matrix highlight controls">
+    <fieldset class="flow-control">
+      <legend>Highlight a row</legend>
+      <div class="net-buttons" id="row-buttons">
+        <button type="button" class="net-button" data-row="0" aria-pressed="false">ROW_0 · GP5/P7</button>
+        <button type="button" class="net-button" data-row="1" aria-pressed="false">ROW_1 · GP6/P9</button>
+        <button type="button" class="net-button" data-row="2" aria-pressed="false">ROW_2 · GP7/P10</button>
+        <button type="button" class="net-button" data-row="3" aria-pressed="false">ROW_3 · GP8/P11</button>
+        <button type="button" class="net-button" data-row="4" aria-pressed="false">ROW_4 · GP9/P12</button>
+        <button type="button" class="net-button" data-row="5" aria-pressed="false">ROW_5 · GP10/P14</button>
+      </div>
+    </fieldset>
+    <fieldset class="flow-control">
+      <legend>Highlight a column</legend>
+      <div class="net-buttons" id="column-buttons">
+        <button type="button" class="net-button" data-col="0" aria-pressed="false">COL_0 · Little</button>
+        <button type="button" class="net-button" data-col="1" aria-pressed="false">COL_1 · Ring</button>
+        <button type="button" class="net-button" data-col="2" aria-pressed="false">COL_2 · Middle</button>
+        <button type="button" class="net-button" data-col="3" aria-pressed="false">COL_3 · Index</button>
+        <button type="button" class="net-button" data-col="4" aria-pressed="false">COL_4 · Thumb</button>
+      </div>
+    </fieldset>
+    <button type="button" class="clear-selection" id="clear-selection">Show all wiring</button>
+  </div>
+
+  <div class="explorer-layout">
+    <div class="flow-canvas">
+      <svg id="matrix-explorer" viewBox="0 0 1600 1600" role="img" aria-labelledby="matrix-explorer-title matrix-explorer-description">
+        <title id="matrix-explorer-title">Interactive complete Replicazeron wiring</title>
+        <desc id="matrix-explorer-description">A unified node-flow view in which the switch matrix, OLED, joystick, side indicators, RGB lighting, logic-level option, and power wiring terminate at labelled controller ports.</desc>
+      </svg>
+    </div>
+
+    <aside class="flow-inspector" aria-live="polite">
+      <h2>Selected connection</h2>
+      <div class="selection-pills" id="selection-pills"><span class="selection-pill none">Nothing selected</span></div>
+      <div class="connection-card" id="connection-card">
+        <h3>Start with a column or row</h3>
+        <p>Choose a button above, or click directly on the flow diagram.</p>
+        <p>The exact switch is highlighted when both a row and a column are selected.</p>
+      </div>
+      <div class="solder-summary">
+        <div class="solder-summary-head"><strong id="solder-progress-text">0 / 30 matrix connections soldered</strong><button type="button" class="clear-checkmarks" id="clear-checkmarks">Clear checks</button></div>
+        <progress id="solder-progress" value="0" max="30"></progress>
+        <p id="peripheral-progress" class="small">0 / 15 peripheral cables soldered</p>
+        <div class="wiring-data-tools">
+          <button type="button" class="wiring-data-button" id="download-wiring-json">Download JSON</button>
+          <button type="button" class="wiring-data-button" id="upload-wiring-json">Upload JSON</button>
+          <input type="file" id="wiring-json-file" accept="application/json,.json" hidden>
+          <p class="wiring-data-note">Back up or move your ticks and one- or two-colour cable choices for this controller.</p>
+        </div>
+      </div>
+      <div class="build-tip">
+        <strong>Suggested first-build order</strong>
+        <ol>
+          <li>Select one column and wire its shared column bus.</li>
+          <li>Select each row used in that column.</li>
+          <li>Wire switch → diode, with the diode band toward the row bus.</li>
+          <li>Continuity-test that intersection before moving on.</li>
+          <li>Select each component cable below the matrix and tick it after testing.</li>
+        </ol>
+      </div>
+      <div class="flow-legend" aria-label="Highlight legend">
+        <span><i class="legend-line row"></i>selected row</span>
+        <span><i class="legend-line col"></i>selected column</span>
+        <span><i class="legend-cell"></i>exact intersection</span>
+      </div>
+    </aside>
+  </div>
+
+  <div class="cookie-notice" id="wiring-cookie-notice" role="note">
+    <p><strong>Wiring progress cookie:</strong> this page stores only solder ticks, cable colours, and wiring selections for this controller. No personal information is stored. The cookie expires 180 days after your latest change; local browser storage is used as a fallback, and JSON download provides a permanent backup.</p>
+    <button type="button" id="dismiss-cookie-notice">Got it</button>
+  </div>
+</section>
+
+<script>
+(() => {
+  const svg = document.getElementById('matrix-explorer');
+  if (!svg) return;
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const rows = [
+    { name: 'ROW_0', gpio: 'GP5', pin: 7 },
+    { name: 'ROW_1', gpio: 'GP6', pin: 9 },
+    { name: 'ROW_2', gpio: 'GP7', pin: 10 },
+    { name: 'ROW_3', gpio: 'GP8', pin: 11 },
+    { name: 'ROW_4', gpio: 'GP9', pin: 12 },
+    { name: 'ROW_5', gpio: 'GP10', pin: 14 }
+  ];
+  const columns = [
+    { name: 'COL_0', gpio: 'GP0', pin: 1, group: 'Little finger', functions: ['KEY 1', 'KEY 2', 'KEY 3', 'KEY 4', 'KEY 5', 'OUTER KEY'] },
+    { name: 'COL_1', gpio: 'GP1', pin: 2, group: 'Ring finger', functions: ['KEY 1', 'KEY 2', 'KEY 3', 'KEY 4', 'KEY 5', 'BASE BUTTON'] },
+    { name: 'COL_2', gpio: 'GP2', pin: 4, group: 'Middle finger', functions: ['KEY 1', 'KEY 2', 'KEY 3', 'KEY 4', 'KEY 5', 'THUMB-SIDE KEY'] },
+    { name: 'COL_3', gpio: 'GP3', pin: 5, group: 'Index finger', functions: ['KEY 1', 'KEY 2', 'KEY 3', 'KEY 4', 'KEY 5', 'INNER KEY'] },
+    { name: 'COL_4', gpio: 'GP4', pin: 6, group: '5-way button', functions: ['5-WAY CENTER', '5-WAY A', '5-WAY B', '5-WAY C', '5-WAY D', 'JOYSTICK BUTTON'] }
+  ];
+
+  const initialParameters = new URLSearchParams(window.location.search);
+  const requestedRow = initialParameters.has('row') ? Number(initialParameters.get('row')) : NaN;
+  const requestedCol = initialParameters.has('col') ? Number(initialParameters.get('col')) : NaN;
+  let selectedRow = Number.isInteger(requestedRow) && requestedRow >= 0 && requestedRow < rows.length ? requestedRow : null;
+  let selectedCol = Number.isInteger(requestedCol) && requestedCol >= 0 && requestedCol < columns.length ? requestedCol : null;
+  let selectedPeripheral = initialParameters.get('path') || null;
+  const controllerId = document.title.includes('STM32F103') ? 'stm32f103' : 'rp2040';
+  const stateStorageKey = `replicazeron-wiring-${controllerId}`;
+  const stateCookieName = `replicazeron_wiring_${controllerId}`;
+  const legacyCompletionKey = `replicazeron-soldered-${controllerId}`;
+  const completed = new Set();
+  const wireColors = { rows: {}, columns: {}, cells: {} };
+  const wireSecondaryColors = { rows: {}, columns: {}, cells: {} };
+  const peripheralCompleted = new Set();
+  const peripheralColors = {};
+  const peripheralSecondaryColors = {};
+  const wiringOptions = { rgbLevelShifter: false };
+  const hardwarePins = controllerId === 'stm32f103' ? {
+    joyX: 'PB0 / ADC', joyY: 'PB1 / ADC', joyClickCol: 'PB4 / COL_4', joyClickRow: 'PB3 / ROW_5', oledSda: 'PB11 / SDA', oledScl: 'PB10 / SCL', indicatorLeft: 'PB13', indicatorRight: 'PB12', rgbData: 'PB14', supply3v3: '3V3 header'
+  } : {
+    joyX: 'GP26 / pin 31', joyY: 'GP27 / pin 32', joyClickCol: 'GP4 / pin 6 / COL_4', joyClickRow: 'GP10 / pin 14 / ROW_5', oledSda: 'GP20 / pin 26 / SDA', oledScl: 'GP21 / pin 27 / SCL', indicatorLeft: 'GP11 / pin 15', indicatorRight: 'GP12 / pin 16', rgbData: 'GP13 / pin 17', supply3v3: '3V3(OUT) / pin 36'
+  };
+  const peripheralPaths = [
+    { id: 'joy-x', group: 'joystick', name: 'Joystick X', route: `${hardwarePins.joyX} → VRX` },
+    { id: 'joy-y', group: 'joystick', name: 'Joystick Y', route: `${hardwarePins.joyY} → VRY` },
+    { id: 'joy-vcc', group: 'joystick', name: 'Joystick VCC', route: `${hardwarePins.supply3v3} → VCC` },
+    { id: 'joy-gnd', group: 'joystick', name: 'Joystick GND', route: 'MCU GND → GND' },
+    { id: 'joy-click-col', group: 'joystick', name: 'Joystick button · COL_4 lead', route: `${hardwarePins.joyClickCol} → terminal 1 of the single joystick push button` },
+    { id: 'joy-click-row', group: 'joystick', name: 'Joystick button · ROW_5 lead', route: `terminal 2 of the same joystick push button → 1N4148 (band toward ROW_5) → ${hardwarePins.joyClickRow}` },
+    { id: 'indicator-left', group: 'indicator', name: 'Left indicator', route: `3V3 → resistor → LED → ${hardwarePins.indicatorLeft}` },
+    { id: 'indicator-right', group: 'indicator', name: 'Right indicator', route: `3V3 → resistor → LED → ${hardwarePins.indicatorRight}` },
+    { id: 'rgb-data', group: 'rgb', name: 'RGB data', route: `${hardwarePins.rgbData} → 330 Ω → DIN` },
+    { id: 'rgb-5v', group: 'rgb', name: 'RGB +5 V', route: 'regulated +5 V → strip +5 V' },
+    { id: 'rgb-gnd', group: 'rgb', name: 'RGB ground', route: 'MCU/common GND → strip GND' },
+    { id: 'oled-vcc', group: 'oled', name: 'OLED VCC', route: `${hardwarePins.supply3v3} → OLED VCC` },
+    { id: 'oled-gnd', group: 'oled', name: 'OLED ground', route: 'MCU GND → OLED GND' },
+    { id: 'oled-sda', group: 'oled', name: 'OLED SDA', route: `${hardwarePins.oledSda} → OLED SDA` },
+    { id: 'oled-scl', group: 'oled', name: 'OLED SCL', route: `${hardwarePins.oledScl} → OLED SCL` }
+  ];
+  if (!peripheralPaths.some(path => path.id === selectedPeripheral)) selectedPeripheral = null;
+  if (selectedPeripheral !== null) {
+    selectedRow = null;
+    selectedCol = null;
+  }
+
+  const rowColorKeys = rows.map((_, index) => String(index));
+  const columnColorKeys = columns.map((_, index) => String(index));
+  const cellColorKeys = columns.flatMap((_, colIndex) => rows.map((__, rowIndex) => `${colIndex}:${rowIndex}`));
+  const peripheralColorKeys = peripheralPaths.map(path => path.id);
+
+  function expandCookieState(state) {
+    if (!state || state.schema || state.c === undefined) return state;
+    const inflate = (values, keys) => Object.fromEntries(keys.flatMap((key, index) => validColor(values?.[index]) ? [[key, values[index]]] : []));
+    return {
+      schema: 'replicazeron-wiring-state', version: 1, controller: state.c,
+      selection: { row: state.s?.[0] ?? null, col: state.s?.[1] ?? null, peripheral: state.s?.[2] ?? null },
+      completed: Array.isArray(state.d) ? state.d : [],
+      colors: {
+        rows: inflate(state.a?.[0], rowColorKeys),
+        columns: inflate(state.a?.[1], columnColorKeys),
+        cells: inflate(state.a?.[2], cellColorKeys)
+      },
+      secondaryColors: {
+        rows: inflate(state.b?.[0], rowColorKeys),
+        columns: inflate(state.b?.[1], columnColorKeys),
+        cells: inflate(state.b?.[2], cellColorKeys)
+      },
+      peripherals: {
+        completed: Array.isArray(state.p?.[0]) ? state.p[0] : [],
+        colors: inflate(state.p?.[1], peripheralColorKeys),
+        secondaryColors: inflate(state.p?.[2], peripheralColorKeys)
+      },
+      options: { rgbLevelShifter: state.l === true }
+    };
+  }
+
+  function readStateCookie() {
+    const prefix = `${stateCookieName}=`;
+    const item = document.cookie.split('; ').find(part => part.startsWith(prefix));
+    if (!item) return null;
+    try { return expandCookieState(JSON.parse(decodeURIComponent(item.slice(prefix.length)))); } catch (_) { return null; }
+  }
+
+  function validColor(value) {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+  }
+
+  function applyLoadedState(state) {
+    if (!state || typeof state !== 'object') return false;
+    if (state.controller && state.controller !== controllerId) return false;
+    if (Array.isArray(state.completed)) {
+      state.completed.forEach(key => { if (/^[0-4]:[0-5]$/.test(key)) completed.add(key); });
+    }
+    const incomingColors = state.colors || {};
+    Object.entries(incomingColors.rows || {}).forEach(([key, value]) => {
+      if (/^[0-5]$/.test(key) && validColor(value)) wireColors.rows[key] = value;
+    });
+    Object.entries(incomingColors.columns || {}).forEach(([key, value]) => {
+      if (/^[0-4]$/.test(key) && validColor(value)) wireColors.columns[key] = value;
+    });
+    Object.entries(incomingColors.cells || {}).forEach(([key, value]) => {
+      if (/^[0-4]:[0-5]$/.test(key) && validColor(value)) wireColors.cells[key] = value;
+    });
+    const incomingSecondaryColors = state.secondaryColors || {};
+    Object.entries(incomingSecondaryColors.rows || {}).forEach(([key, value]) => {
+      if (/^[0-5]$/.test(key) && validColor(value)) wireSecondaryColors.rows[key] = value;
+    });
+    Object.entries(incomingSecondaryColors.columns || {}).forEach(([key, value]) => {
+      if (/^[0-4]$/.test(key) && validColor(value)) wireSecondaryColors.columns[key] = value;
+    });
+    Object.entries(incomingSecondaryColors.cells || {}).forEach(([key, value]) => {
+      if (/^[0-4]:[0-5]$/.test(key) && validColor(value)) wireSecondaryColors.cells[key] = value;
+    });
+    if (Array.isArray(state.peripherals?.completed)) {
+      state.peripherals.completed.forEach(key => {
+        if (peripheralPaths.some(path => path.id === key)) peripheralCompleted.add(key);
+      });
+    }
+    Object.entries(state.peripherals?.colors || {}).forEach(([key, value]) => {
+      if (peripheralPaths.some(path => path.id === key) && validColor(value)) peripheralColors[key] = value;
+    });
+    Object.entries(state.peripherals?.secondaryColors || {}).forEach(([key, value]) => {
+      if (peripheralPaths.some(path => path.id === key) && validColor(value)) peripheralSecondaryColors[key] = value;
+    });
+    wiringOptions.rgbLevelShifter = state.options?.rgbLevelShifter === true;
+    if (!initialParameters.has('row') && Number.isInteger(state.selection?.row) && state.selection.row >= 0 && state.selection.row < rows.length) selectedRow = state.selection.row;
+    if (!initialParameters.has('col') && Number.isInteger(state.selection?.col) && state.selection.col >= 0 && state.selection.col < columns.length) selectedCol = state.selection.col;
+    if (!initialParameters.has('path') && peripheralPaths.some(path => path.id === state.selection?.peripheral)) selectedPeripheral = state.selection.peripheral;
+    if (selectedPeripheral !== null) {
+      selectedRow = null;
+      selectedCol = null;
+    }
+    return true;
+  }
+
+  let loadedSavedState = false;
+  try {
+    const saved = readStateCookie() || JSON.parse(localStorage.getItem(stateStorageKey) || 'null');
+    loadedSavedState = applyLoadedState(saved);
+    if (!loadedSavedState) {
+      const legacy = JSON.parse(localStorage.getItem(legacyCompletionKey) || '[]');
+      if (Array.isArray(legacy)) legacy.forEach(key => { if (/^[0-4]:[0-5]$/.test(key)) completed.add(key); });
+    }
+  } catch (_) {
+    // Wiring tracking still works for this visit if browser storage is unavailable.
+  }
+
+  const cellKey = (rowIndex, colIndex) => `${colIndex}:${rowIndex}`;
+  const shortPin = value => value.split(' / ')[0];
+
+  const make = (name, attrs = {}, text = '') => {
+    const node = document.createElementNS(NS, name);
+    Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+    if (text) node.textContent = text;
+    return node;
+  };
+  const add = (parent, name, attrs, text) => {
+    const node = make(name, attrs, text);
+    parent.appendChild(node);
+    return node;
+  };
+
+  const background = add(svg, 'g', { 'aria-hidden': 'true' });
+  for (let x = 0; x <= 1600; x += 40) add(background, 'path', { d: `M${x} 0V1600`, class: 'grid-line' });
+  for (let y = 0; y <= 1600; y += 40) add(background, 'path', { d: `M0 ${y}H1600`, class: 'grid-line' });
+
+  const rowY = rows.map((_, index) => 180 + index * 80);
+  const colX = columns.map((_, index) => 400 + index * 240);
+
+  const panelLayer = add(svg, 'g');
+  columns.forEach((column, colIndex) => {
+    const x = colX[colIndex] - 98;
+    const panel = add(panelLayer, 'g', { class: 'click-target', 'data-col': colIndex, tabindex: '0', role: 'button', 'aria-label': `Select ${column.name}, ${column.group}` });
+    add(panel, 'rect', { x, y: 55, width: 196, height: 590, rx: 9, class: 'flow-node' });
+    add(panel, 'rect', { x, y: 55, width: 196, height: 55, rx: 9, class: 'node-header' });
+    add(panel, 'text', { x: colX[colIndex], y: 78, 'text-anchor': 'middle', class: 'flow-title' }, column.group);
+    add(panel, 'text', { x: colX[colIndex], y: 98, 'text-anchor': 'middle', class: 'flow-mono' }, `${column.name} · ${column.gpio}/P${column.pin}`);
+    panel.addEventListener('click', () => setColumn(colIndex));
+    panel.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setColumn(colIndex); } });
+  });
+
+  const edgeLayer = add(svg, 'g');
+  rows.forEach((row, rowIndex) => {
+    const pathData = `M274 ${rowY[rowIndex]}H1540`;
+    const edge = add(edgeLayer, 'path', { d: pathData, class: 'row-edge click-target', 'data-row': rowIndex, tabindex: '0', role: 'button', 'aria-label': `Select ${row.name}` });
+    add(edgeLayer, 'path', { d: pathData, class: 'cable-secondary-overlay row-secondary', 'data-row': rowIndex, 'aria-hidden': 'true' });
+    edge.addEventListener('click', () => setRow(rowIndex));
+    edge.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setRow(rowIndex); } });
+  });
+  columns.forEach((column, colIndex) => {
+    const startX = 72 + colIndex * 40;
+    const routeY = 690 + colIndex * 12;
+    const pathData = `M${startX} 690V${routeY}H${colX[colIndex]}V110`;
+    const edge = add(edgeLayer, 'path', { d: pathData, class: 'col-edge click-target', 'data-col': colIndex, tabindex: '0', role: 'button', 'aria-label': `Select ${column.name}` });
+    add(edgeLayer, 'path', { d: pathData, class: 'cable-secondary-overlay col-secondary', 'data-col': colIndex, 'aria-hidden': 'true' });
+    edge.addEventListener('click', () => setColumn(colIndex));
+    edge.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setColumn(colIndex); } });
+  });
+
+  const pico = add(svg, 'g');
+  add(pico, 'rect', { x: 24, y: 70, width: 250, height: 1190, rx: 13, class: 'pico-node' });
+  add(pico, 'text', { x: 149, y: 101, 'text-anchor': 'middle', class: 'flow-title' }, 'RASPBERRY PI PICO');
+  add(pico, 'text', { x: 149, y: 120, 'text-anchor': 'middle', class: 'flow-text' }, 'RP2040 · physical header pins');
+  rows.forEach((row, rowIndex) => {
+    const group = add(pico, 'g', { class: 'click-target', 'data-row': rowIndex, tabindex: '0', role: 'button', 'aria-label': `Select ${row.name}` });
+    add(group, 'text', { x: 43, y: rowY[rowIndex] + 4, class: 'flow-mono' }, row.name);
+    add(group, 'text', { x: 146, y: rowY[rowIndex] + 4, class: 'flow-text' }, `${row.gpio}${controllerId === 'stm32f103' ? '' : ` · pin ${row.pin}`}`);
+    add(group, 'circle', { cx: 274, cy: rowY[rowIndex], r: 7, class: 'port row-port', 'data-row': rowIndex });
+    group.addEventListener('click', () => setRow(rowIndex));
+    group.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setRow(rowIndex); } });
+  });
+  add(pico, 'text', { x: 149, y: 680, 'text-anchor': 'middle', class: 'flow-text' }, 'COLUMN OUTPUTS');
+  columns.forEach((column, colIndex) => {
+    const x = 72 + colIndex * 40;
+    add(pico, 'circle', { cx: x, cy: 690, r: 7, class: 'port col-port', 'data-col': colIndex });
+    add(pico, 'text', { x, y: 714, 'text-anchor': 'middle', class: 'flow-mono' }, `C${colIndex}`);
+  });
+
+  add(pico, 'text', { x: 149, y: 770, 'text-anchor': 'middle', class: 'flow-title' }, 'PERIPHERAL / POWER PINS');
+  add(pico, 'text', { x: 149, y: 789, 'text-anchor': 'middle', class: 'flow-text' }, 'Every port below has a complete route');
+  const mcuPortLabels = {
+    'joy-x': shortPin(hardwarePins.joyX),
+    'joy-y': shortPin(hardwarePins.joyY),
+    'joy-vcc': '3V3',
+    'joy-gnd': 'GND',
+    'joy-click-col': shortPin(hardwarePins.joyClickCol),
+    'joy-click-row': shortPin(hardwarePins.joyClickRow),
+    'indicator-left': shortPin(hardwarePins.indicatorLeft),
+    'indicator-right': shortPin(hardwarePins.indicatorRight),
+    'rgb-data': shortPin(hardwarePins.rgbData),
+    'rgb-gnd': 'GND',
+    'oled-vcc': '3V3',
+    'oled-gnd': 'GND',
+    'oled-sda': shortPin(hardwarePins.oledSda),
+    'oled-scl': shortPin(hardwarePins.oledScl)
+  };
+  const pathSourcePoints = {};
+  peripheralPaths.filter(path => path.id !== 'rgb-5v').forEach((path, index) => {
+    const y = 820 + index * 25;
+    const port = add(pico, 'g', {
+      class: 'click-target peripheral-source peripheral-mcu-port', 'data-path-id': path.id,
+      tabindex: '0', role: 'button', 'aria-label': `Select ${path.name} at controller port ${mcuPortLabels[path.id]}`
+    });
+    add(port, 'text', { x: 43, y: y + 4, class: 'flow-text' }, path.name.replace('Joystick button · ', 'Button '));
+    add(port, 'text', { x: 258, y: y + 4, 'text-anchor': 'end', class: 'flow-mono' }, mcuPortLabels[path.id]);
+    add(port, 'circle', { cx: 274, cy: y, r: 6, class: 'port' });
+    port.addEventListener('click', () => selectPeripheral(path.id));
+    port.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPeripheral(path.id); } });
+    pathSourcePoints[path.id] = { x: 274, y };
+  });
+
+  const ledPower = add(svg, 'g', { class: 'click-target peripheral-source', 'data-path-id': 'rgb-5v', tabindex: '0', role: 'button', 'aria-label': 'Select regulated external RGB 5 volt supply' });
+  add(ledPower, 'rect', { x: 24, y: 1290, width: 250, height: 78, rx: 9, class: 'component-node' });
+  add(ledPower, 'rect', { x: 24, y: 1290, width: 250, height: 32, rx: 9, class: 'component-node-header' });
+  add(ledPower, 'text', { x: 149, y: 1312, 'text-anchor': 'middle', class: 'flow-title' }, 'EXTERNAL LED POWER');
+  add(ledPower, 'text', { x: 42, y: 1348, class: 'flow-mono' }, 'REGULATED +5 V · NOT AN MCU PIN');
+  add(ledPower, 'circle', { cx: 274, cy: 1344, r: 6, class: 'port' });
+  ledPower.addEventListener('click', () => selectPeripheral('rgb-5v'));
+  ledPower.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPeripheral('rgb-5v'); } });
+  pathSourcePoints['rgb-5v'] = { x: 274, y: 1344 };
+
+  const cellLayer = add(svg, 'g');
+  columns.forEach((column, colIndex) => {
+    rows.forEach((row, rowIndex) => {
+      const x = colX[colIndex] - 78;
+      const y = rowY[rowIndex] - 23;
+      const cell = add(cellLayer, 'g', {
+        class: 'matrix-cell', 'data-row': rowIndex, 'data-col': colIndex,
+        tabindex: '0', role: 'button',
+        'aria-label': `${column.name} and ${row.name}: ${column.group} ${column.functions[rowIndex]}`
+      });
+      add(cell, 'rect', { x, y, width: 156, height: 46, rx: 6, class: 'cell-box' });
+      add(cell, 'rect', { x: x + 2, y: y + 2, width: 152, height: 42, rx: 5, class: 'cell-secondary-overlay' });
+      add(cell, 'circle', { cx: x, cy: rowY[rowIndex], r: 5, class: 'port' });
+      add(cell, 'circle', { cx: x + 156, cy: rowY[rowIndex], r: 5, class: 'port' });
+      add(cell, 'text', { x: colX[colIndex], y: rowY[rowIndex] - 4, 'text-anchor': 'middle', class: 'flow-mono' }, column.functions[rowIndex]);
+      add(cell, 'text', { x: colX[colIndex], y: rowY[rowIndex] + 13, 'text-anchor': 'middle', class: 'flow-text' }, 'SWITCH →| DIODE');
+      const completionToggle = add(cell, 'g', {
+        class: 'completion-toggle',
+        tabindex: '0', role: 'checkbox', 'aria-checked': 'false',
+        'aria-label': `Mark ${column.group} ${column.functions[rowIndex]} soldered`
+      });
+      add(completionToggle, 'circle', { cx: x + 141, cy: y + 11, r: 9, class: 'completion-ring' });
+      add(completionToggle, 'text', { x: x + 141, y: y + 16, 'text-anchor': 'middle', class: 'completion-check' }, '✓');
+      completionToggle.addEventListener('click', event => {
+        event.stopPropagation();
+        toggleCompleted(rowIndex, colIndex);
+      });
+      completionToggle.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleCompleted(rowIndex, colIndex);
+        }
+      });
+      cell.addEventListener('click', event => { event.stopPropagation(); selectedPeripheral = null; selectedRow = rowIndex; selectedCol = colIndex; update(); });
+      cell.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectedPeripheral = null; selectedRow = rowIndex; selectedCol = colIndex; update(); } });
+    });
+  });
+
+  const peripheralLayer = add(svg, 'g', { class: 'peripheral-flow' });
+  add(peripheralLayer, 'rect', { x: 300, y: 800, width: 1280, height: 770, rx: 12, class: 'peripheral-zone' });
+  add(peripheralLayer, 'text', { x: 320, y: 827, class: 'flow-title' }, 'PHYSICAL CONTROLS · PERIPHERALS · POWER · LIGHTING');
+  add(peripheralLayer, 'text', { x: 1560, y: 827, 'text-anchor': 'end', class: 'flow-text' }, 'Click any cable or control to inspect, colour, and tick it off');
+
+  const canvasRoutes = {
+    'joy-x': `${shortPin(hardwarePins.joyX)} → VRX`,
+    'joy-y': `${shortPin(hardwarePins.joyY)} → VRY`,
+    'joy-vcc': `3V3 → VCC`,
+    'joy-gnd': `GND → GND`,
+    'joy-click-col': `COL_4 → button terminal 1`,
+    'joy-click-row': `button terminal 2 → D30 → ROW_5`,
+    'indicator-left': `3V3 → R → LED → ${shortPin(hardwarePins.indicatorLeft)}`,
+    'indicator-right': `3V3 → R → LED → ${shortPin(hardwarePins.indicatorRight)}`,
+    'rgb-data': `${shortPin(hardwarePins.rgbData)} → 330 Ω → DIN`,
+    'rgb-5v': `regulated 5V → strip +5V`,
+    'rgb-gnd': `common GND → strip GND`,
+    'oled-vcc': `3V3 → OLED VCC`,
+    'oled-gnd': `GND → OLED GND`,
+    'oled-sda': `${shortPin(hardwarePins.oledSda)} → SDA`,
+    'oled-scl': `${shortPin(hardwarePins.oledScl)} → SCL`
+  };
+  const componentSpecs = [
+    { group: 'oled', title: 'OLED · SSD1306', x: 330, y: 855, width: 300, height: 250, pathY: 910 },
+    { group: 'joystick', title: 'ANALOG THUMBSTICK · TWO AXES + ONE PUSH BUTTON', x: 970, y: 855, width: 580, height: 350, pathY: 910 },
+    { group: 'indicator', title: 'BASE BUTTON + SIDE INDICATORS', x: 330, y: 1140, width: 300, height: 300, pathY: 1195 },
+    { group: 'rgb', title: 'ADDRESSABLE RGB + POWER', x: 650, y: 1235, width: 900, height: 310, pathY: 1290 }
+  ];
+
+  const fiveWay = add(peripheralLayer, 'g', { class: 'click-target physical-control', tabindex: '0', role: 'button', 'aria-label': 'Select the single 5-way button on column 4' });
+  add(fiveWay, 'rect', { x: 650, y: 855, width: 290, height: 350, rx: 9, class: 'component-node' });
+  add(fiveWay, 'rect', { x: 650, y: 855, width: 290, height: 38, rx: 9, class: 'component-node-header' });
+  add(fiveWay, 'text', { x: 665, y: 880, class: 'flow-title' }, '5-WAY BUTTON · ONE COMPONENT');
+  add(fiveWay, 'rect', { x: 765, y: 930, width: 60, height: 190, rx: 16, class: 'peripheral-path-hit' });
+  add(fiveWay, 'rect', { x: 700, y: 995, width: 190, height: 60, rx: 16, class: 'peripheral-path-hit' });
+  add(fiveWay, 'circle', { cx: 795, cy: 1025, r: 27, class: 'port' });
+  add(fiveWay, 'text', { x: 795, y: 1021, 'text-anchor': 'middle', class: 'flow-mono' }, 'CENTER');
+  add(fiveWay, 'text', { x: 795, y: 1038, 'text-anchor': 'middle', class: 'flow-text' }, 'ROW_0');
+  add(fiveWay, 'text', { x: 795, y: 920, 'text-anchor': 'middle', class: 'flow-mono' }, 'A · ROW_1');
+  add(fiveWay, 'text', { x: 795, y: 1150, 'text-anchor': 'middle', class: 'flow-mono' }, 'C · ROW_3');
+  add(fiveWay, 'text', { x: 680, y: 1029, 'text-anchor': 'middle', class: 'flow-mono' }, 'D · ROW_4');
+  add(fiveWay, 'text', { x: 910, y: 1029, 'text-anchor': 'middle', class: 'flow-mono' }, 'B · ROW_2');
+  add(fiveWay, 'text', { x: 795, y: 1180, 'text-anchor': 'middle', class: 'flow-text' }, 'All five contacts share COL_4');
+  fiveWay.addEventListener('click', () => { selectedPeripheral = null; selectedRow = null; selectedCol = 4; update(); });
+  fiveWay.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectedPeripheral = null; selectedRow = null; selectedCol = 4; update(); } });
+  componentSpecs.forEach(spec => {
+    const node = add(peripheralLayer, 'g', { 'data-component': spec.group });
+    add(node, 'rect', { x: spec.x, y: spec.y, width: spec.width, height: spec.height, rx: 9, class: 'component-node' });
+    add(node, 'rect', { x: spec.x, y: spec.y, width: spec.width, height: 38, rx: 9, class: 'component-node-header' });
+    add(node, 'text', { x: spec.x + 12, y: spec.y + 25, class: 'flow-title' }, spec.title);
+    const paths = peripheralPaths.filter(path => path.group === spec.group);
+    paths.forEach((path, index) => {
+      const y = spec.pathY + index * 42;
+      const globalIndex = peripheralPaths.findIndex(item => item.id === path.id);
+      const source = pathSourcePoints[path.id];
+      const laneX = 282 + globalIndex * 5;
+      const laneY = 735 + globalIndex * 4;
+      const targetX = spec.x + 18;
+      const pathWidth = spec.group === 'rgb' ? 430 : spec.group === 'joystick' ? 390 : spec.width;
+      const fullRoute = `M${source.x} ${source.y}H${laneX}V${laneY}H${spec.x - 10}V${y + 2}H${targetX}`;
+      const row = add(node, 'g', {
+        class: 'peripheral-flow-path click-target', 'data-path-id': path.id,
+        tabindex: '0', role: 'button', 'aria-label': `Select ${path.name}`
+      });
+      add(row, 'rect', { x: spec.x + 8, y: y - 16, width: pathWidth - 16, height: 36, rx: 5, class: 'peripheral-path-hit' });
+      add(row, 'path', { d: fullRoute, class: 'peripheral-edge', 'data-path-id': path.id });
+      add(row, 'path', { d: fullRoute, class: 'peripheral-secondary', 'data-path-id': path.id, 'aria-hidden': 'true' });
+      add(row, 'circle', { cx: spec.x + 18, cy: y + 2, r: 4, class: 'port' });
+      add(row, 'circle', { cx: spec.x + 50, cy: y + 2, r: 4, class: 'port' });
+      add(row, 'text', { x: spec.x + 59, y: y - 2, class: 'flow-mono' }, path.name);
+      add(row, 'text', { x: spec.x + 59, y: y + 13, class: 'flow-text peripheral-route-text', 'data-path-id': path.id }, canvasRoutes[path.id]);
+      const completionToggle = add(row, 'g', {
+        class: 'completion-toggle', tabindex: '0', role: 'checkbox', 'aria-checked': 'false',
+        'aria-label': `Mark ${path.name} cable soldered`
+      });
+      add(completionToggle, 'circle', { cx: spec.x + pathWidth - 21, cy: y - 4, r: 9, class: 'completion-ring' });
+      add(completionToggle, 'text', { x: spec.x + pathWidth - 21, y: y + 1, 'text-anchor': 'middle', class: 'completion-check' }, '✓');
+      completionToggle.addEventListener('click', event => {
+        event.stopPropagation();
+        if (peripheralCompleted.has(path.id)) peripheralCompleted.delete(path.id); else peripheralCompleted.add(path.id);
+        saveState();
+        updatePeripheralDisplay();
+        renderInspector();
+      });
+      completionToggle.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          if (peripheralCompleted.has(path.id)) peripheralCompleted.delete(path.id); else peripheralCompleted.add(path.id);
+          saveState();
+          updatePeripheralDisplay();
+          renderInspector();
+        }
+      });
+      row.addEventListener('click', event => { event.stopPropagation(); selectPeripheral(path.id); });
+      row.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPeripheral(path.id); } });
+    });
+
+    if (spec.group === 'indicator') {
+      const layerButton = add(node, 'g', { class: 'peripheral-option', tabindex: '0', role: 'button', 'aria-label': 'Select base button matrix path' });
+      add(layerButton, 'rect', { x: spec.x + 18, y: 1305, width: spec.width - 36, height: 78, rx: 10 });
+      add(layerButton, 'circle', { cx: spec.x + 55, cy: 1344, r: 20, class: 'port' });
+      add(layerButton, 'text', { x: spec.x + 88, y: 1338, class: 'flow-mono' }, 'BASE BUTTON');
+      add(layerButton, 'text', { x: spec.x + 88, y: 1358, class: 'flow-text' }, 'COL_1 + ROW_5');
+      layerButton.addEventListener('click', () => { selectedPeripheral = null; selectedRow = 5; selectedCol = 1; update(); });
+      layerButton.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectedPeripheral = null; selectedRow = 5; selectedCol = 1; update(); } });
+      add(node, 'text', { x: spec.x + 18, y: 1415, class: 'flow-text' }, 'One base button; both indicators need a resistor.');
+    }
+    if (spec.group === 'joystick') {
+      add(node, 'circle', { cx: spec.x + 485, cy: 1000, r: 68, class: 'peripheral-path-hit' });
+      add(node, 'path', { d: `M${spec.x + 417} 1000H${spec.x + 553}M${spec.x + 485} 932V1068`, class: 'peripheral-edge' });
+      add(node, 'circle', { cx: spec.x + 485, cy: 1000, r: 24, class: 'port' });
+      add(node, 'text', { x: spec.x + 485, y: 1004, 'text-anchor': 'middle', class: 'flow-mono' }, 'PUSH');
+      add(node, 'text', { x: spec.x + 485, y: 1092, 'text-anchor': 'middle', class: 'flow-mono' }, 'COL_4 + ROW_5');
+      add(node, 'text', { x: spec.x + 485, y: 1112, 'text-anchor': 'middle', class: 'flow-text' }, 'VRX + VRY are the two analog axes');
+    }
+    if (spec.group === 'rgb') {
+      const option = add(node, 'g', { id: 'rgb-level-option', class: 'peripheral-option', tabindex: '0', role: 'checkbox', 'aria-checked': 'false' });
+      add(option, 'rect', { x: spec.x + 455, y: 1274, width: 420, height: 58, rx: 6 });
+      add(option, 'text', { x: spec.x + 471, y: 1297, class: 'flow-mono' }, 'OPTIONAL 74AHCT1G125 LEVEL SHIFTER');
+      add(option, 'text', { x: spec.x + 471, y: 1317, class: 'flow-text', id: 'rgb-level-mode' }, 'Bypassed · strip accepts 3.3 V data');
+      option.addEventListener('click', () => { wiringOptions.rgbLevelShifter = !wiringOptions.rgbLevelShifter; saveState(); updatePeripheralDisplay(); renderInspector(); });
+      option.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); wiringOptions.rgbLevelShifter = !wiringOptions.rgbLevelShifter; saveState(); updatePeripheralDisplay(); renderInspector(); } });
+      add(node, 'text', { x: spec.x + 455, y: 1370, class: 'flow-text' }, 'LED 1 DIN → DOUT chain · default 11 pixels above fingers');
+      for (let pixel = 0; pixel < 11; pixel++) add(node, 'circle', { cx: spec.x + 472 + pixel * 35, cy: 1405, r: 10, class: 'port' });
+      add(node, 'text', { x: spec.x + 455, y: 1442, class: 'flow-text' }, 'Keep regulated +5 V isolated from USB VBUS; all grounds common.');
+    }
+  });
+
+  function setRow(rowIndex) {
+    selectedPeripheral = null;
+    selectedRow = selectedRow === rowIndex ? null : rowIndex;
+    update();
+  }
+  function setColumn(colIndex) {
+    selectedPeripheral = null;
+    selectedCol = selectedCol === colIndex ? null : colIndex;
+    update();
+  }
+  function selectPeripheral(pathId) {
+    selectedPeripheral = selectedPeripheral === pathId ? null : pathId;
+    selectedRow = null;
+    selectedCol = null;
+    update();
+  }
+
+  function wiringState() {
+    return {
+      schema: 'replicazeron-wiring-state',
+      version: 1,
+      controller: controllerId,
+      selection: { row: selectedRow, col: selectedCol, peripheral: selectedPeripheral },
+      completed: [...completed].sort(),
+      colors: {
+        rows: { ...wireColors.rows },
+        columns: { ...wireColors.columns },
+        cells: { ...wireColors.cells }
+      },
+      secondaryColors: {
+        rows: { ...wireSecondaryColors.rows },
+        columns: { ...wireSecondaryColors.columns },
+        cells: { ...wireSecondaryColors.cells }
+      },
+      peripherals: {
+        completed: [...peripheralCompleted].sort(),
+        colors: { ...peripheralColors },
+        secondaryColors: { ...peripheralSecondaryColors }
+      },
+      options: { ...wiringOptions }
+    };
+  }
+
+  function compactCookieState() {
+    const compact = (bucket, keys) => keys.map(key => bucket[key] || null);
+    return {
+      c: controllerId,
+      s: [selectedRow, selectedCol, selectedPeripheral],
+      d: [...completed].sort(),
+      a: [compact(wireColors.rows, rowColorKeys), compact(wireColors.columns, columnColorKeys), compact(wireColors.cells, cellColorKeys)],
+      b: [compact(wireSecondaryColors.rows, rowColorKeys), compact(wireSecondaryColors.columns, columnColorKeys), compact(wireSecondaryColors.cells, cellColorKeys)],
+      p: [[...peripheralCompleted].sort(), compact(peripheralColors, peripheralColorKeys), compact(peripheralSecondaryColors, peripheralColorKeys)],
+      l: wiringOptions.rgbLevelShifter
+    };
+  }
+
+  function saveState() {
+    const serialized = JSON.stringify(wiringState());
+    try {
+      localStorage.setItem(stateStorageKey, serialized);
+    } catch (_) {
+      // Keep the in-memory choices when browser storage is unavailable.
+    }
+    try {
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      const compactCookie = encodeURIComponent(JSON.stringify(compactCookieState()));
+      document.cookie = `${stateCookieName}=${compactCookie}; Max-Age=15552000; Path=/; SameSite=Lax${secure}`;
+    } catch (_) {
+      // Local storage remains the fallback for local files or restricted cookies.
+    }
+  }
+
+  function selectedCellKeys() {
+    if (selectedRow !== null && selectedCol !== null) return [cellKey(selectedRow, selectedCol)];
+    if (selectedRow !== null) return columns.map((_, colIndex) => cellKey(selectedRow, colIndex));
+    if (selectedCol !== null) return rows.map((_, rowIndex) => cellKey(rowIndex, selectedCol));
+    return [];
+  }
+
+  function setCompleted(keys, value) {
+    keys.forEach(key => value ? completed.add(key) : completed.delete(key));
+    saveState();
+    updateCompletionDisplay();
+    renderInspector();
+  }
+
+  function toggleCompleted(rowIndex, colIndex) {
+    const key = cellKey(rowIndex, colIndex);
+    setCompleted([key], !completed.has(key));
+  }
+
+  function updateCompletionDisplay() {
+    svg.querySelectorAll('.matrix-cell').forEach(cell => {
+      const done = completed.has(cellKey(Number(cell.dataset.row), Number(cell.dataset.col)));
+      cell.classList.toggle('completed', done);
+      const toggle = cell.querySelector('.completion-toggle');
+      if (toggle) toggle.setAttribute('aria-checked', String(done));
+    });
+    const total = rows.length * columns.length;
+    document.getElementById('solder-progress-text').textContent = `${completed.size} / ${total} matrix connections soldered`;
+    const progress = document.getElementById('solder-progress');
+    progress.max = total;
+    progress.value = completed.size;
+    document.getElementById('clear-checkmarks').disabled = completed.size + peripheralCompleted.size === 0;
+  }
+
+  function updateWireColors() {
+    svg.querySelectorAll('.row-edge').forEach(edge => {
+      const color = wireColors.rows[edge.dataset.row];
+      edge.style.stroke = color || '';
+    });
+    svg.querySelectorAll('.row-secondary').forEach(edge => {
+      const color = wireSecondaryColors.rows[edge.dataset.row];
+      edge.style.stroke = color || '';
+      edge.style.display = color ? 'block' : 'none';
+    });
+    svg.querySelectorAll('.col-edge').forEach(edge => {
+      const color = wireColors.columns[edge.dataset.col];
+      edge.style.stroke = color || '';
+    });
+    svg.querySelectorAll('.col-secondary').forEach(edge => {
+      const color = wireSecondaryColors.columns[edge.dataset.col];
+      edge.style.stroke = color || '';
+      edge.style.display = color ? 'block' : 'none';
+    });
+    svg.querySelectorAll('.matrix-cell').forEach(cell => {
+      const key = cellKey(Number(cell.dataset.row), Number(cell.dataset.col));
+      const color = wireColors.cells[key];
+      const secondaryColor = wireSecondaryColors.cells[key];
+      const box = cell.querySelector('.cell-box');
+      const secondaryBox = cell.querySelector('.cell-secondary-overlay');
+      if (box) box.style.stroke = color || '';
+      if (secondaryBox) {
+        secondaryBox.style.stroke = secondaryColor || '';
+        secondaryBox.style.display = secondaryColor ? 'block' : 'none';
+      }
+      cell.classList.toggle('has-wire-color', Boolean(color || secondaryColor));
+    });
+    document.querySelectorAll('[data-row].net-button').forEach(button => {
+      const color = wireColors.rows[button.dataset.row];
+      const secondaryColor = wireSecondaryColors.rows[button.dataset.row];
+      button.style.borderLeft = color ? `6px solid ${color}` : '';
+      button.style.boxShadow = secondaryColor ? `inset 4px 0 0 ${secondaryColor}` : '';
+    });
+    document.querySelectorAll('[data-col].net-button').forEach(button => {
+      const color = wireColors.columns[button.dataset.col];
+      const secondaryColor = wireSecondaryColors.columns[button.dataset.col];
+      button.style.borderLeft = color ? `6px solid ${color}` : '';
+      button.style.boxShadow = secondaryColor ? `inset 4px 0 0 ${secondaryColor}` : '';
+    });
+  }
+
+  function updatePeripheralDisplay() {
+    svg.querySelectorAll('.peripheral-source').forEach(source => {
+      const active = source.dataset.pathId === selectedPeripheral;
+      source.classList.toggle('selected', active);
+      source.classList.toggle('dimmed', selectedPeripheral !== null && !active || selectedPeripheral === null && (selectedRow !== null || selectedCol !== null));
+    });
+    svg.querySelectorAll('.peripheral-flow-path').forEach(row => {
+      const id = row.dataset.pathId;
+      const done = peripheralCompleted.has(id);
+      const primaryColor = peripheralColors[id];
+      const secondaryColor = peripheralSecondaryColors[id];
+      row.classList.toggle('completed', done);
+      row.classList.toggle('selected', id === selectedPeripheral);
+      row.classList.toggle('dimmed', selectedPeripheral !== null && id !== selectedPeripheral || selectedPeripheral === null && (selectedRow !== null || selectedCol !== null));
+      const edge = row.querySelector('.peripheral-edge');
+      const secondary = row.querySelector('.peripheral-secondary');
+      if (edge) edge.style.stroke = primaryColor || '';
+      if (secondary) {
+        secondary.style.stroke = secondaryColor || '';
+        secondary.style.display = secondaryColor ? 'block' : 'none';
+      }
+      const toggle = row.querySelector('.completion-toggle');
+      if (toggle) toggle.setAttribute('aria-checked', String(done));
+    });
+    document.getElementById('peripheral-progress').textContent = `${peripheralCompleted.size} / ${peripheralPaths.length} peripheral cables soldered`;
+    document.getElementById('clear-checkmarks').disabled = completed.size + peripheralCompleted.size === 0;
+    const adjustedRoute = wiringOptions.rgbLevelShifter
+      ? `${hardwarePins.rgbData} → 74AHCT1G125 → 330 Ω → DIN`
+      : `${hardwarePins.rgbData} → 330 Ω → DIN`;
+    const rgbRoute = svg.querySelector('.peripheral-route-text[data-path-id="rgb-data"]');
+    if (rgbRoute) rgbRoute.textContent = wiringOptions.rgbLevelShifter ? `${shortPin(hardwarePins.rgbData)} → AHCT → 330 Ω → DIN` : canvasRoutes['rgb-data'];
+    const option = document.getElementById('rgb-level-option');
+    const mode = document.getElementById('rgb-level-mode');
+    if (option) {
+      option.classList.toggle('enabled', wiringOptions.rgbLevelShifter);
+      option.setAttribute('aria-checked', String(wiringOptions.rgbLevelShifter));
+    }
+    if (mode) mode.textContent = wiringOptions.rgbLevelShifter ? 'Enabled · 3.3 V data shifted to 5 V logic' : 'Bypassed · strip accepts 3.3 V data';
+  }
+
+  function selectedColorTarget() {
+    if (selectedPeripheral !== null) return { bucket: peripheralColors, secondaryBucket: peripheralSecondaryColors, key: selectedPeripheral, label: 'peripheral cable' };
+    if (selectedRow !== null && selectedCol !== null) return { bucket: wireColors.cells, secondaryBucket: wireSecondaryColors.cells, key: cellKey(selectedRow, selectedCol), label: 'connection cable' };
+    if (selectedRow !== null) return { bucket: wireColors.rows, secondaryBucket: wireSecondaryColors.rows, key: String(selectedRow), label: 'row cable' };
+    if (selectedCol !== null) return { bucket: wireColors.columns, secondaryBucket: wireSecondaryColors.columns, key: String(selectedCol), label: 'column cable' };
+    return null;
+  }
+
+  function setSelectedWireColor(color, secondary = false) {
+    const target = selectedColorTarget();
+    if (!target || !validColor(color)) return;
+    const bucket = secondary ? target.secondaryBucket : target.bucket;
+    bucket[target.key] = color.toLowerCase();
+    saveState();
+    updateWireColors();
+    renderInspector();
+  }
+
+  function removeSelectedSecondaryColor() {
+    const target = selectedColorTarget();
+    if (!target) return;
+    delete target.secondaryBucket[target.key];
+    saveState();
+    updateWireColors();
+    renderInspector();
+  }
+
+  function removeSelectedWireColor() {
+    const target = selectedColorTarget();
+    if (!target) return;
+    delete target.bucket[target.key];
+    delete target.secondaryBucket[target.key];
+    saveState();
+    updateWireColors();
+    renderInspector();
+  }
+
+  function update() {
+    document.querySelectorAll('[data-row].net-button').forEach(button => {
+      const active = Number(button.dataset.row) === selectedRow;
+      button.classList.toggle('row-active', active);
+      button.setAttribute('aria-pressed', active);
+    });
+    document.querySelectorAll('[data-col].net-button').forEach(button => {
+      const active = Number(button.dataset.col) === selectedCol;
+      button.classList.toggle('col-active', active);
+      button.setAttribute('aria-pressed', active);
+    });
+
+    svg.querySelectorAll('.row-edge').forEach(edge => {
+      const active = Number(edge.dataset.row) === selectedRow;
+      edge.classList.toggle('active-row', active);
+      edge.classList.toggle('dimmed', selectedPeripheral !== null || selectedRow !== null && !active || selectedRow === null && selectedCol !== null);
+    });
+    svg.querySelectorAll('.row-secondary').forEach(edge => {
+      const active = Number(edge.dataset.row) === selectedRow;
+      edge.classList.toggle('dimmed', selectedPeripheral !== null || selectedRow !== null && !active || selectedRow === null && selectedCol !== null);
+    });
+    svg.querySelectorAll('.col-edge').forEach(edge => {
+      const active = Number(edge.dataset.col) === selectedCol;
+      edge.classList.toggle('active-col', active);
+      edge.classList.toggle('dimmed', selectedPeripheral !== null || selectedCol !== null && !active || selectedCol === null && selectedRow !== null);
+    });
+    svg.querySelectorAll('.col-secondary').forEach(edge => {
+      const active = Number(edge.dataset.col) === selectedCol;
+      edge.classList.toggle('dimmed', selectedPeripheral !== null || selectedCol !== null && !active || selectedCol === null && selectedRow !== null);
+    });
+    svg.querySelectorAll('.row-port').forEach(port => port.classList.toggle('active-row-port', Number(port.dataset.row) === selectedRow));
+    svg.querySelectorAll('.col-port').forEach(port => port.classList.toggle('active-col-port', Number(port.dataset.col) === selectedCol));
+
+    svg.querySelectorAll('.matrix-cell').forEach(cell => {
+      const rowMatch = Number(cell.dataset.row) === selectedRow;
+      const colMatch = Number(cell.dataset.col) === selectedCol;
+      cell.classList.remove('row-context', 'col-context', 'intersection', 'dimmed');
+      if (selectedPeripheral !== null) {
+        cell.classList.add('dimmed');
+      } else if (selectedRow !== null && selectedCol !== null) {
+        if (rowMatch && colMatch) cell.classList.add('intersection');
+        else if (rowMatch) cell.classList.add('row-context');
+        else if (colMatch) cell.classList.add('col-context');
+        else cell.classList.add('dimmed');
+      } else if (selectedRow !== null) {
+        if (rowMatch) cell.classList.add('row-context'); else cell.classList.add('dimmed');
+      } else if (selectedCol !== null) {
+        if (colMatch) cell.classList.add('col-context'); else cell.classList.add('dimmed');
+      }
+    });
+
+    updateCompletionDisplay();
+    updateWireColors();
+    updatePeripheralDisplay();
+    renderInspector();
+    saveState();
+    try {
+      const url = new URL(window.location.href);
+      if (selectedRow === null) url.searchParams.delete('row'); else url.searchParams.set('row', selectedRow);
+      if (selectedCol === null) url.searchParams.delete('col'); else url.searchParams.set('col', selectedCol);
+      if (selectedPeripheral === null) url.searchParams.delete('path'); else url.searchParams.set('path', selectedPeripheral);
+      history.replaceState(null, '', url);
+    } catch (_) {
+      // The guide still works when URL state cannot be updated (for example in a restricted embedded viewer).
+    }
+  }
+
+  function renderInspector() {
+    const pills = document.getElementById('selection-pills');
+    const card = document.getElementById('connection-card');
+    pills.textContent = '';
+    if (selectedPeripheral === null && selectedRow === null && selectedCol === null) {
+      pills.innerHTML = '<span class="selection-pill none">Nothing selected</span>';
+      card.innerHTML = '<h3>Select any connection</h3><p>Choose a matrix control above, or click a switch or peripheral cable directly in the flow diagram.</p><p>The selected path remains linked to its solder tick and cable colours.</p>';
+      return;
+    }
+    if (selectedPeripheral !== null) {
+      const path = peripheralPaths.find(item => item.id === selectedPeripheral);
+      pills.insertAdjacentHTML('beforeend', `<span class="selection-pill row">${path.group.toUpperCase()} · ${path.name}</span>`);
+      card.innerHTML = `<h3>${path.name}</h3><p><code>${path.route}</code></p>`;
+      if (path.id === 'joy-click-row') card.insertAdjacentHTML('beforeend', '<p>This is the second lead of the <strong>same single joystick button</strong>, not another button. The 1N4148 band/cathode must face <code>ROW_5</code>, and both button terminals must be isolated from module GND.</p>');
+      if (path.id === 'rgb-data') card.insertAdjacentHTML('beforeend', `<p>${wiringOptions.rgbLevelShifter ? 'The optional 74AHCT1G125 level shifter is enabled.' : 'Direct 3.3 V data is selected; use this only when the strip accepts it reliably.'}</p>`);
+      const done = peripheralCompleted.has(path.id);
+      const completionButton = document.createElement('button');
+      completionButton.type = 'button';
+      completionButton.className = 'completion-button';
+      completionButton.textContent = done ? '✓ cable soldered — undo' : 'Mark cable soldered';
+      completionButton.addEventListener('click', () => {
+        if (done) peripheralCompleted.delete(path.id); else peripheralCompleted.add(path.id);
+        saveState();
+        updatePeripheralDisplay();
+        renderInspector();
+      });
+      card.appendChild(completionButton);
+    } else {
+      if (selectedRow !== null) {
+        const row = rows[selectedRow];
+        pills.insertAdjacentHTML('beforeend', `<span class="selection-pill row">${row.name} · ${row.gpio}/P${row.pin}</span>`);
+      }
+      if (selectedCol !== null) {
+        const column = columns[selectedCol];
+        pills.insertAdjacentHTML('beforeend', `<span class="selection-pill col">${column.name} · ${column.gpio}/P${column.pin}</span>`);
+      }
+
+      if (selectedRow !== null && selectedCol !== null) {
+        const row = rows[selectedRow];
+        const column = columns[selectedCol];
+        card.innerHTML = `<h3>${column.group} · ${column.functions[selectedRow]}</h3>
+          <p><code>${column.name}</code>: Pico <code>${column.gpio}</code>, physical pin <code>${column.pin}</code>.</p>
+          <p><code>${row.name}</code>: Pico <code>${row.gpio}</code>, physical pin <code>${row.pin}</code>.</p>
+          <p>Wire <code>${column.name} → switch → diode → ${row.name}</code>. The 1N4148 band/cathode faces <code>${row.name}</code>.</p>`;
+      } else if (selectedRow !== null) {
+        const row = rows[selectedRow];
+        card.innerHTML = `<h3>${row.name} shared row bus</h3>
+          <p>Run this bus to Pico <code>${row.gpio}</code>, physical pin <code>${row.pin}</code>.</p>
+          <p>Connect the banded/cathode end of each populated diode on this row to the shared bus—one position in each column.</p>`;
+      } else {
+        const column = columns[selectedCol];
+        card.innerHTML = `<h3>${column.group} · ${column.name}</h3>
+          <p>Run this shared column bus to Pico <code>${column.gpio}</code>, physical pin <code>${column.pin}</code>.</p>
+          <p>Connect the column bus to the switch side of each populated position in this group. Select a row next to isolate one switch.</p>`;
+      }
+
+      const keys = selectedCellKeys();
+      const allDone = keys.every(key => completed.has(key));
+      const scope = selectedRow !== null && selectedCol !== null ? 'connection' : selectedRow !== null ? 'row' : 'column';
+      const completionButton = document.createElement('button');
+      completionButton.type = 'button';
+      completionButton.className = 'completion-button';
+      completionButton.textContent = allDone ? `✓ ${scope} soldered — undo` : `Mark ${scope} soldered`;
+      completionButton.addEventListener('click', () => setCompleted(keys, !allDone));
+      card.appendChild(completionButton);
+    }
+
+    const colorTarget = selectedColorTarget();
+    const colorControl = document.createElement('div');
+    colorControl.className = 'wire-color-control';
+    const primaryRow = document.createElement('div');
+    primaryRow.className = 'wire-color-row';
+    const colorLabel = document.createElement('label');
+    colorLabel.htmlFor = 'selected-wire-color';
+    colorLabel.textContent = 'Primary colour';
+    const colorPicker = document.createElement('input');
+    colorPicker.type = 'color';
+    colorPicker.id = 'selected-wire-color';
+    colorPicker.value = colorTarget.bucket[colorTarget.key] || '#ff9800';
+    colorPicker.title = `Choose the ${colorTarget.label} colour`;
+    const applyColor = document.createElement('button');
+    applyColor.type = 'button';
+    applyColor.className = 'wire-color-button';
+    applyColor.textContent = 'Set primary';
+    applyColor.addEventListener('click', () => setSelectedWireColor(colorPicker.value));
+    colorPicker.addEventListener('change', () => setSelectedWireColor(colorPicker.value));
+    primaryRow.append(colorLabel, colorPicker, applyColor);
+
+    const secondaryRow = document.createElement('div');
+    secondaryRow.className = 'wire-color-row';
+    const secondaryLabel = document.createElement('label');
+    secondaryLabel.className = 'secondary-color-label';
+    const secondaryToggle = document.createElement('input');
+    secondaryToggle.type = 'checkbox';
+    secondaryToggle.checked = Boolean(colorTarget.secondaryBucket[colorTarget.key]);
+    secondaryToggle.setAttribute('aria-label', 'Use a second cable colour');
+    const secondaryLabelText = document.createElement('span');
+    secondaryLabelText.textContent = 'Second colour';
+    secondaryLabel.append(secondaryToggle, secondaryLabelText);
+    const secondaryPicker = document.createElement('input');
+    secondaryPicker.type = 'color';
+    secondaryPicker.id = 'selected-wire-secondary-color';
+    secondaryPicker.value = colorTarget.secondaryBucket[colorTarget.key] || '#ffffff';
+    secondaryPicker.disabled = !secondaryToggle.checked;
+    secondaryPicker.title = `Choose the optional second ${colorTarget.label} colour`;
+    const applySecondary = document.createElement('button');
+    applySecondary.type = 'button';
+    applySecondary.className = 'wire-color-button';
+    applySecondary.textContent = 'Set second';
+    applySecondary.disabled = !secondaryToggle.checked;
+    secondaryToggle.addEventListener('change', () => {
+      if (secondaryToggle.checked) setSelectedWireColor(secondaryPicker.value, true);
+      else removeSelectedSecondaryColor();
+    });
+    applySecondary.addEventListener('click', () => setSelectedWireColor(secondaryPicker.value, true));
+    secondaryPicker.addEventListener('change', () => setSelectedWireColor(secondaryPicker.value, true));
+    secondaryRow.append(secondaryLabel, secondaryPicker, applySecondary);
+
+    const removeColor = document.createElement('button');
+    removeColor.type = 'button';
+    removeColor.className = 'wire-color-remove';
+    const hasAssignedColor = Boolean(colorTarget.bucket[colorTarget.key] || colorTarget.secondaryBucket[colorTarget.key]);
+    removeColor.textContent = hasAssignedColor ? 'Remove assigned colours' : 'No colours assigned';
+    removeColor.disabled = !hasAssignedColor;
+    removeColor.addEventListener('click', removeSelectedWireColor);
+    colorControl.append(primaryRow, secondaryRow, removeColor);
+    card.appendChild(colorControl);
+  }
+
+  document.querySelectorAll('[data-row].net-button').forEach(button => button.addEventListener('click', () => setRow(Number(button.dataset.row))));
+  document.querySelectorAll('[data-col].net-button').forEach(button => button.addEventListener('click', () => setColumn(Number(button.dataset.col))));
+  document.getElementById('clear-selection').addEventListener('click', () => { selectedRow = null; selectedCol = null; selectedPeripheral = null; update(); });
+  document.getElementById('clear-checkmarks').addEventListener('click', () => {
+    if (completed.size + peripheralCompleted.size === 0 || window.confirm('Clear all matrix and peripheral soldered checkmarks for this controller?')) {
+      completed.clear();
+      peripheralCompleted.clear();
+      saveState();
+      updateCompletionDisplay();
+      updatePeripheralDisplay();
+      renderInspector();
+    }
+  });
+  document.getElementById('download-wiring-json').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(wiringState(), null, 2) + '\n'], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `replicazeron-${controllerId}-wiring.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 0);
+  });
+  const wiringFileInput = document.getElementById('wiring-json-file');
+  document.getElementById('upload-wiring-json').addEventListener('click', () => wiringFileInput.click());
+  wiringFileInput.addEventListener('change', async () => {
+    const file = wiringFileInput.files && wiringFileInput.files[0];
+    if (!file) return;
+    try {
+      const imported = JSON.parse(await file.text());
+      if (imported.schema !== 'replicazeron-wiring-state' || imported.version !== 1) throw new Error('This is not a supported Replicazeron wiring JSON file.');
+      if (imported.controller !== controllerId) throw new Error(`This file is for ${imported.controller || 'another controller'}, not ${controllerId}.`);
+      if (!window.confirm('Replace the current ticks, cable colours, and selection with this JSON file?')) return;
+      completed.clear();
+      Object.keys(wireColors.rows).forEach(key => delete wireColors.rows[key]);
+      Object.keys(wireColors.columns).forEach(key => delete wireColors.columns[key]);
+      Object.keys(wireColors.cells).forEach(key => delete wireColors.cells[key]);
+      Object.keys(wireSecondaryColors.rows).forEach(key => delete wireSecondaryColors.rows[key]);
+      Object.keys(wireSecondaryColors.columns).forEach(key => delete wireSecondaryColors.columns[key]);
+      Object.keys(wireSecondaryColors.cells).forEach(key => delete wireSecondaryColors.cells[key]);
+      peripheralCompleted.clear();
+      Object.keys(peripheralColors).forEach(key => delete peripheralColors[key]);
+      Object.keys(peripheralSecondaryColors).forEach(key => delete peripheralSecondaryColors[key]);
+      wiringOptions.rgbLevelShifter = false;
+      applyLoadedState(imported);
+      selectedRow = Number.isInteger(imported.selection?.row) && imported.selection.row >= 0 && imported.selection.row < rows.length ? imported.selection.row : null;
+      selectedCol = Number.isInteger(imported.selection?.col) && imported.selection.col >= 0 && imported.selection.col < columns.length ? imported.selection.col : null;
+      selectedPeripheral = peripheralPaths.some(path => path.id === imported.selection?.peripheral) ? imported.selection.peripheral : null;
+      if (selectedPeripheral !== null) { selectedRow = null; selectedCol = null; }
+      saveState();
+      update();
+    } catch (error) {
+      window.alert(`Could not import wiring JSON: ${error.message}`);
+    } finally {
+      wiringFileInput.value = '';
+    }
+  });
+  const cookieNotice = document.getElementById('wiring-cookie-notice');
+  try {
+    if (sessionStorage.getItem('replicazeron-cookie-notice-dismissed') === '1') cookieNotice.hidden = true;
+  } catch (_) {}
+  document.getElementById('dismiss-cookie-notice').addEventListener('click', () => {
+    cookieNotice.hidden = true;
+    try { sessionStorage.setItem('replicazeron-cookie-notice-dismissed', '1'); } catch (_) {}
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') { selectedRow = null; selectedCol = null; selectedPeripheral = null; update(); } });
+  update();
+})();
+</script>
+
+<section class="page" id="peripheral-circuits">
+  <h1>Peripheral circuits and power</h1>
+  <div class="subtitle">Recommended implementation details for a reliable, serviceable build</div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Matrix switch cell — repeat for every populated key</h2>
+      <svg viewBox="0 0 520 170">
+        <text x="15" y="30" class="label">COL_n</text><path d="M68 26 H145" class="matrix"/>
+        <circle cx="160" cy="26" r="4" fill="#6750a4"/><circle cx="215" cy="26" r="4" fill="#6750a4"/>
+        <path d="M160 26 L198 7" class="matrix"/><text x="165" y="60" class="tiny">normally-open switch</text>
+        <path d="M215 26 H280" class="matrix"/>
+        <path d="M280 8 V44 M280 26 L310 8 V44 Z M310 8 V44" class="matrix"/>
+        <path d="M310 26 H410" class="matrix"/><text x="420" y="30" class="label">ROW_n</text>
+        <text x="270" y="65" class="tiny">1N4148</text><text x="300" y="82" class="tiny">band/bar toward ROW</text>
+        <rect x="20" y="103" width="475" height="48" rx="7" class="part"/>
+        <text x="35" y="123" class="pin">COL bus — switch — diode anode → diode cathode/band — ROW bus</text>
+        <text x="35" y="142" class="tiny">Do not share one diode between switches. All diodes must face the same way.</text>
+      </svg>
+    </div>
+
+    <div class="card">
+      <h2>Analog joystick — 3.3 V only</h2>
+      <svg viewBox="0 0 520 220">
+        <rect x="185" y="25" width="145" height="175" rx="10" class="part"/>
+        <text x="257" y="48" text-anchor="middle" class="label">JOYSTICK</text>
+        <text x="205" y="72" class="pin">VCC</text><text x="205" y="94" class="pin">VRX</text>
+        <text x="205" y="116" class="pin">VRY</text><text x="205" y="138" class="pin">GND</text>
+        <text x="195" y="174" class="pin">BUTTON 1</text><text x="270" y="174" class="pin">BUTTON 2</text>
+        <path d="M25 68 H185" class="power"/><text x="25" y="58" class="pin">Pico pin 36, 3V3(OUT)</text>
+        <path d="M330 90 H490" class="signal"/><text x="345" y="80" class="pin">GP26 / pin 31</text>
+        <path d="M330 112 H490" class="signal"/><text x="345" y="132" class="pin">GP27 / pin 32</text>
+        <path d="M185 134 H90 V151" class="ground"/><path d="M75 151 H105 M81 158 H99 M87 164 H93" class="ground"/>
+        <path d="M25 182 H240 M290 182 H365" class="matrix"/><circle cx="240" cy="182" r="4" fill="#6750a4"/><circle cx="290" cy="182" r="4" fill="#6750a4"/><path d="M244 180 L284 164" class="matrix"/><text x="25" y="173" class="pin">COL_4 · GP4 / pin 6</text>
+        <path d="M365 169 V195 M365 182 L388 169 V195 Z M393 168 V196 M393 182 H490" class="matrix"/>
+        <text x="420" y="174" text-anchor="middle" class="pin">ROW_5 · GP10 / pin 14</text><text x="495" y="211" text-anchor="end" class="tiny">D30 · 1N4148 · band toward ROW_5</text>
+      </svg>
+      <div class="warning"><strong>Never connect the joystick VCC wire to 5 V</strong> when VRX/VRY go directly to GP26/GP27. Measure both axis voltages first: they must stay between 0 and 3.3 V over full travel. There is one joystick push button with two terminals. Those terminals must be isolated; do not connect a module's GND-referenced SW output directly as a matrix key.</div>
+    </div>
+
+    <div class="card">
+      <h2>OLED I²C</h2>
+      <svg viewBox="0 0 520 180">
+        <rect x="330" y="25" width="155" height="125" rx="9" class="part"/>
+        <text x="408" y="48" text-anchor="middle" class="label">OLED</text>
+        <text x="350" y="73" class="pin">VCC</text><text x="350" y="95" class="pin">SCL</text>
+        <text x="350" y="117" class="pin">SDA</text><text x="350" y="139" class="pin">GND</text>
+        <path d="M25 68 H330" class="power"/><text x="25" y="58" class="pin">3V3(OUT), pin 36</text>
+        <path d="M25 91 H330" class="signal"/><text x="25" y="86" class="pin">GP21/SCL, pin 27</text>
+        <path d="M25 113 H330" class="signal"/><text x="25" y="108" class="pin">GP20/SDA, pin 26</text>
+        <path d="M330 139 H275 V165" class="ground"/><path d="M260 165 H290 M266 172 H284 M272 179 H278" class="ground"/>
+        <path d="M175 68 V91 M215 68 V113" class="wire" stroke-dasharray="3 3"/>
+        <text x="118" y="150" class="tiny">If pull-ups are not already on the OLED:</text>
+        <text x="118" y="165" class="tiny">4.7 kΩ SCL→3V3 and 4.7 kΩ SDA→3V3</text>
+      </svg>
+      <div class="note">Power the module from 3.3 V unless its exact schematic proves that 5 V VCC cannot pull SDA/SCL above 3.3 V.</div>
+    </div>
+
+    <div class="card">
+      <h2>Side indicators — active low, matching 9R</h2>
+      <svg viewBox="0 0 520 180">
+        <text x="20" y="45" class="pin">3V3(OUT)</text><path d="M88 41 H145" class="power"/>
+        <rect x="145" y="30" width="75" height="22" class="part"/><text x="183" y="45" text-anchor="middle" class="tiny">330–1kΩ</text>
+        <path d="M220 41 H285" class="signal"/><path d="M285 25 V57 M285 41 L315 25 V57 Z M315 25 V57" class="signal"/>
+        <path d="M315 41 H415" class="signal"/><text x="423" y="45" class="pin">GP11 / pin 15</text>
+        <text x="20" y="120" class="pin">3V3(OUT)</text><path d="M88 116 H145" class="power"/>
+        <rect x="145" y="105" width="75" height="22" class="part"/><text x="183" y="120" text-anchor="middle" class="tiny">330–1kΩ</text>
+        <path d="M220 116 H285" class="signal"/><path d="M285 100 V132 M285 116 L315 100 V132 Z M315 100 V132" class="signal"/>
+        <path d="M315 116 H415" class="signal"/><text x="423" y="120" class="pin">GP12 / pin 16</text>
+        <text x="275" y="86" class="tiny">LED cathode/bar side → GPIO; low output turns LED on</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:8px">
+    <h2>WS2812 strip — choose the data interface from the strip specification</h2>
+    <svg viewBox="0 0 1080 170">
+      <text x="15" y="38" class="pin">Pico GP13</text><path d="M92 34 H185" class="signal"/>
+      <rect x="185" y="15" width="205" height="75" rx="8" class="part"/>
+      <text x="288" y="40" text-anchor="middle" class="label">OPTIONAL 74AHCT1G125 / 74AHCT125</text>
+      <text x="288" y="60" text-anchor="middle" class="tiny">Fit when the strip does not support 3.3 V data, or its input requirement is unknown</text>
+      <text x="288" y="77" text-anchor="middle" class="tiny">VCC=5 V · GND=common · OE tied low · converts GP13 data to 5 V logic</text>
+      <path d="M92 34 V8 H455 V23" class="signal" stroke-dasharray="6 5"/>
+      <text x="274" y="7" text-anchor="middle" class="tiny">DIRECT OPTION: only when the strip datasheet accepts 3.3 V DIN</text>
+      <path d="M390 34 H455" class="signal"/><rect x="455" y="23" width="65" height="22" class="part"/>
+      <text x="488" y="38" text-anchor="middle" class="tiny">330 Ω</text><path d="M520 34 H630" class="signal"/>
+      <rect x="630" y="15" width="160" height="75" rx="8" class="part"/>
+      <text x="710" y="40" text-anchor="middle" class="label">WS2812 #1 DIN</text>
+      <text x="710" y="60" text-anchor="middle" class="tiny">then DOUT → next DIN</text>
+      <text x="710" y="77" text-anchor="middle" class="tiny">firmware default: 11 pixels</text>
+      <path d="M790 34 H835" class="signal"/><text x="843" y="38" class="pin">… remaining pixels</text>
+
+      <path d="M185 122 H790" class="power"/><text x="18" y="126" class="pin">regulated +5 V, ≥1 A for 11 pixels</text>
+      <path d="M185 151 H790" class="ground"/><text x="18" y="155" class="pin">common GND (supply + Pico + strip)</text>
+      <path d="M610 122 V151" class="wire"/><rect x="570" y="116" width="25" height="41" class="part"/>
+      <text x="525" y="108" class="tiny">470–1000 µF bulk capacitor near strip input</text>
+      <text x="824" y="112" class="tiny">Do not tie an external 5 V supply to Pico VBUS while USB is connected</text>
+      <text x="824" y="129" class="tiny">unless the power path is deliberately isolated or power-ORed.</text>
+      <text x="824" y="151" class="tiny">Connect grounds together before the data wire.</text>
+    </svg>
+  </div>
+  <div class="footer">Page 2/3 · Circuit details · Resistor values are conservative starting points; verify actual LED/module specifications.</div>
+</section>
+
+<section class="page" id="harness-and-bring-up">
+  <h1>Harness map and bring-up checklist</h1>
+  <div class="subtitle">Use continuity mode with all power disconnected. Choose any conductor colors, then label and verify every signal.</div>
+
+  <div class="grid3">
+    <div class="card">
+      <h2>Matrix harness</h2>
+      <table>
+        <tr><th>Signal</th><th>Pico GPIO</th><th>Physical pin</th></tr>
+        <tr><td>COL_0</td><td>GP0</td><td>1</td></tr>
+        <tr><td>COL_1</td><td>GP1</td><td>2</td></tr>
+        <tr><td>COL_2</td><td>GP2</td><td>4</td></tr>
+        <tr><td>COL_3</td><td>GP3</td><td>5</td></tr>
+        <tr><td>COL_4</td><td>GP4</td><td>6</td></tr>
+        <tr><td>ROW_0</td><td>GP5</td><td>7</td></tr>
+        <tr><td>ROW_1</td><td>GP6</td><td>9</td></tr>
+        <tr><td>ROW_2</td><td>GP7</td><td>10</td></tr>
+        <tr><td>ROW_3</td><td>GP8</td><td>11</td></tr>
+        <tr><td>ROW_4</td><td>GP9</td><td>12</td></tr>
+        <tr><td>ROW_5</td><td>GP10</td><td>14</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Peripherals</h2>
+      <table>
+        <tr><th>Function</th><th>Pico</th><th>Physical</th></tr>
+        <tr><td>Left side LED</td><td>GP11</td><td>15</td></tr>
+        <tr><td>Right side LED</td><td>GP12</td><td>16</td></tr>
+        <tr><td>WS2812 data</td><td>GP13</td><td>17</td></tr>
+        <tr><td>OLED SDA</td><td>GP20</td><td>26</td></tr>
+        <tr><td>OLED SCL</td><td>GP21</td><td>27</td></tr>
+        <tr><td>Joystick VRX</td><td>GP26/ADC0</td><td>31</td></tr>
+        <tr><td>Joystick VRY</td><td>GP27/ADC1</td><td>32</td></tr>
+        <tr><td>Joystick ground</td><td>AGND</td><td>33</td></tr>
+        <tr><td>Joystick click</td><td>COL_4 + ROW_5</td><td>GP4 + GP10</td></tr>
+        <tr><td>3.3 V peripherals</td><td>3V3(OUT)</td><td>36</td></tr>
+        <tr><td>Logic ground</td><td>GND</td><td>3/8/13/18/23/28/38</td></tr>
+      </table>
+      <p class="small">GP14, GP15, GP16–GP19, GP22, and GP28 remain spare in this firmware.</p>
+    </div>
+
+    <div class="card">
+      <h2>Reported 5-way wiring</h2>
+      <table>
+        <tr><th>Contact</th><th>Matrix connection</th></tr>
+        <tr><td>Common</td><td>COL_4 / GP4</td></tr>
+        <tr><td>Center</td><td>ROW_0 / GP5</td></tr>
+        <tr><td>A</td><td>ROW_1 / GP6</td></tr>
+        <tr><td>B</td><td>ROW_2 / GP7</td></tr>
+        <tr><td>C</td><td>ROW_3 / GP8</td></tr>
+        <tr><td>D</td><td>ROW_4 / GP9</td></tr>
+      </table>
+      <div class="warning" style="margin-top:8px"><strong>Direction mapping to resolve:</strong> 9R assigns the five contacts to ROW_0–ROW_4 but does not label their physical directions. The supplied harness calls ROW_0 Center, while current OLED navigation calls (0,4) Right and (1,4) Select. Identify A–D with a meter, then align firmware or wiring.</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:8px">
+    <div class="card">
+      <h2>Power-off checks</h2>
+      <ol>
+        <li>Disconnect USB and every external supply.</li>
+        <li>Check for a short between 3V3 and GND, then 5V and GND.</li>
+        <li>Verify BOOTSEL is not mechanically stuck. BOOTSEL is onboard and must not be wired into the key matrix.</li>
+        <li>Continuity-check every harness wire to the Pico physical pin—not only the GP label.</li>
+        <li>Verify every matrix diode band faces the ROW bus.</li>
+        <li>Verify GP0 and GP5 are not permanently shorted together.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>Safe staged bring-up</h2>
+      <ol>
+        <li>Disconnect OLED, joystick, WS2812 strip, and side LEDs. Connect only Pico USB.</li>
+        <li>Flash the UF2 and confirm the <span class="mono">RPI-RP2</span> drive disappears and the USB HID device enumerates.</li>
+        <li>Add the matrix harness. Test one switch at a time in Vial/WebHID.</li>
+        <li>Add joystick powered from 3V3. Measure VRX/VRY before connecting GP26/GP27.</li>
+        <li>Add OLED at 3.3 V and confirm SDA/SCL idle near 3.3 V.</li>
+        <li>Add side LEDs with resistors.</li>
+        <li>Add the externally powered WS2812 strip last. Connect GP13 directly through 330 Ω only if the strip supports 3.3 V data; otherwise fit the level shifter.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:8px"><strong>Design basis:</strong> compared net-by-net with 9R's STM32 KiCad schematic. It preserves the COL2ROW topology, COL_4 thumb common, ROW_5 stick click, 3.3 V analog/OLED supplies, active-low indicators, and 5 V WS2812 supply while translating MCU pins to Pico. The level shifter is optional when the exact strip supports a 3.3 V data input; otherwise it is required for dependable level conversion. The data resistor, bulk capacitor, and separated LED-power guidance are reliability additions. This is not a certification drawing; confirm actual module datasheets.</div>
+  <div class="footer">Page 3/3 · Harness and verification · Replicazeron community firmware</div>
+</section>
+
+</body>
+</html>

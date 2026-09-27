@@ -48,12 +48,15 @@ OpenRGB support. It keeps all 11 Vial layout slots, macros, editable layout
 titles, per-layout joystick modes, OLED settings, WebHID configuration, and
 normal Vial remapping.
 
-The optional Vial Key Override engine, developer HID Console, and NKRO are
-disabled on the STM32F103 build to leave flash space for the Replicazeron OLED,
-WebHID, macro, joystick, lighting, and host-traffic indicator features. The
-standard keyboard report still supports six simultaneous keyboard keys;
+The optional Vial Key Override engine and developer HID Console remain
+disabled. On the STM32F103 build, NKRO and several additional QMK conveniences
+are also disabled to leave flash space for the Replicazeron OLED, WebHID,
+macro, joystick, lighting, and host-traffic indicator features. The standard
+Blue Pill keyboard report still supports six simultaneous keyboard keys;
 joystick and mouse reports remain separate. Tap Dance, ordinary remapping,
 layer keys, the Vial macro engine, and all 11 layout slots remain available.
+The RP2040 build restores NKRO, Repeat Key, Caps Word, Magic keycodes, Layer
+Lock, Grave Escape, and Space Cadet.
 
 OpenRGB communicates through VialRGB on the existing 32-byte Vial Raw HID
 interface. There is no bridge program and no second OpenRGB HID interface, so
@@ -65,22 +68,44 @@ Build the combined firmware with:
 qmk compile -c -kb handwired/replicazeron/stm32f103 -km vial
 ```
 
-### Experimental browser firmware update
+For a standard Raspberry Pi Pico wired according to
+[HARDWARE.md](HARDWARE.md), build the RP2040 UF2 with:
 
-The WebHID configurator includes a guarded WebUSB DFU installer for the
-STM32duino bootloader (`1EAF:0003`, alternate interface 2). Version 0.1.8 or
-later must first be installed with the normal command-line method; later builds
-can then request bootloader mode directly from the page.
+```sh
+qmk compile -c -kb handwired/replicazeron/rp2040 -km vial
+```
+
+> [!WARNING]
+> The RP2040 firmware, XInput interface, and browser-flashing path compile but
+> have not yet been verified on physical RP2040 hardware. Treat the UF2 as
+> experimental and keep BOOTSEL recovery available. The STM32F103 build is the
+> validated release target.
+
+Hold BOOTSEL while connecting the Pico and copy the generated UF2 to its
+`RPI-RP2` drive for manual recovery or the first update from older firmware.
+Do not use the STM32 `.bin` or STM32duino DFU transport on the Pico.
+
+### Browser firmware update
+
+The WebHID configurator reads the running firmware's controller identity and
+selects the appropriate WebUSB installer automatically: STM32duino DFU
+(`1EAF:0003`, alternate interface 2) for Blue Pill, or the RP2040 ROM PICOBOOT
+interface (`2E8A:0003`) for a Pico UF2.
 
 Open the standalone
 [Replicazeron WebHID Control Deck](https://qwuille.github.io/replicazeron_webhid/)
 in Chrome or Edge, connect the running Replicazeron, and use the numbered controls under **Firmware
-update**. Select a Replicazeron `.bin`, enter bootloader mode, explicitly grant
-access to the bootloader, and confirm the flash. The page validates the image
-size and STM32 vector table before enabling the write button. This experimental
-path is based on the same browser DFU approach demonstrated by
-[WebDFU](https://github.com/devanlai/webdfu); keep the command-line flasher
-available as the recovery path while testing.
+update**. Select the requested Replicazeron `.bin` or `.uf2`, enter bootloader
+mode, explicitly grant access to the bootloader, and confirm the flash. The page
+validates the STM32 image size/vector table or the RP2040 UF2 family,
+completeness, and flash range before enabling the write button. Keep manual
+DFU, SWD, or BOOTSEL flashing available as a recovery path.
+
+Older RP2040 firmware predates the controller-identity reply used for automatic
+selection. Install the current UF2 once by holding BOOTSEL while connecting USB
+and copying it to `RPI-RP2`. After that one manual update, the page recognizes
+the Pico and uses PICOBOOT automatically. Older firmware without the identity
+reply falls back to the historical Blue Pill updater for compatibility.
 
 The bootloader control offers two reset methods. **Blue Pill USB reconnect
 assist (PA12)** first disconnects USB D+ in software for 250 ms, then resets;
@@ -157,8 +182,18 @@ OpenRGB mode.
 
 ### Firmware RGB effects
 
-Firmware mode includes Breathing, Rainbow, Swirl, Knight Rider, Twinkle,
-Moving Rainbow, Hue Wave, Hue Pendulum, Cylon, Pulse, and Reactive Pulse.
+Firmware mode includes Solid Reactive, Splash, Multisplash, Solid Reactive
+Cross, and Solid Reactive Wide. Key presses are mapped to the nearest point on
+the horizontal LED strip, so these effects spread from the relevant finger or
+thumb group rather than from an unrelated pixel. LED 1 is treated as the
+index-finger/`COL_3` end of the strip; the chain then runs toward middle, ring,
+and little finger. Thumb controls use that same nearest endpoint.
+
+The RP2040 build also includes Breathing, Rainbow, Swirl, Knight Rider,
+Twinkle, Moving Rainbow, Hue Wave, Hue Pendulum, Cylon, Pulse, and Reactive
+Pulse. The flash-limited Blue Pill retains the standard effects but omits the
+four larger Replicazeron-only effects: Knight Rider, Cylon, Pulse, and Reactive
+Pulse.
 Knight Rider uses a constant-speed KITT-style scanner with a trailing fade;
 Cylon uses a compact eye that eases at each end of its travel.
 
@@ -217,7 +252,8 @@ runtime switch.
   interface.
 * A persistent Firmware/OpenRGB ownership setting on the OLED and WebHID page.
 * Ten independently remappable layouts plus an editable Settings tool layer.
-* Per-layout Analog, WASD, and WASD + Shift thumbstick modes.
+* Per-layout Analog, WASD, and WASD + Shift thumbstick modes, plus an
+  RP2040-only XInput + keys mode.
 * Five independently selectable OLED designs for every playable layout: Input
   monitor, Macro focus, Game status, Combined, and Minimal.
 * Editable OLED layout titles, names for Macro 0-15, deadzone, and axis filtering.
@@ -230,6 +266,15 @@ runtime switch.
 * A two-button, two-second factory-reset confirmation on the OLED.
 * RGB and both side status LEDs shut down with USB suspend and restore on wake.
 
+The configurable deadzone also applies to the analog HID report. Values inside
+it are held at the exact center to eliminate small ADC drift. Values outside it
+are linearly rescaled, so movement begins smoothly at zero and can still reach
+the full axis range. The same setting is available in WebHID and under
+**Calibration → Deadzone** on the OLED; no additional EEPROM field is needed.
+The reported axes also use lightweight fixed-point smoothing to reduce ADC
+jitter without consuming another setting or EEPROM field. **Axis filter** is a
+separate directional aid that suppresses unintended diagonal movement.
+
 The side-indicator brightness range starts at 34/255. Lower values do not
 retain enough PWM resolution to show useful stick-strength variation. Wiring
 polarity is stored per device so original active-low and modified active-high
@@ -239,8 +284,9 @@ builds can use the same firmware.
 
 The physical `lyr` key is owned by the firmware, independent of its Vial
 mapping. Tap it to advance to the next layout. Hold it for at least 500 ms to
-cycle the current layout through Joystick, WASD, and WASD + Shift modes. Each
-layout's selection is saved in EEPROM.
+cycle the current layout through its available stick modes. RP2040 adds XInput
++ keys after Joystick, WASD, and WASD + Shift; Blue Pill keeps the original
+three-mode cycle. Each layout's selection is saved in EEPROM.
 
 The OLED `MODE` menu first asks which layout to edit. Its `Settings tools`
 entry controls only the Settings layer and cycles scroll/cursor, middle-drag
@@ -260,12 +306,23 @@ profiles center those HID axes and translate the physical stick into keyboard
 input instead, avoiding simultaneous joystick movement in games that listen to
 both device types.
 
+The RP2040-only **XInput + keys** mode sends the thumbstick as the XInput left
+stick and centres the normal HID joystick report. Vial's User tab exposes A,
+B, X, Y, D-pad, bumpers, triggers, Back, Start, stick-click, and Guide
+assignments directly on each existing layout; no extra layer is used. Ordinary
+QMK keycodes on the same layout remain keyboard keys, allowing either pure
+XInput assignments or an intentional hybrid. XInput assignments are inert in
+the three regular modes but remain stored, so changing modes never erases them.
+
 On Settings, the thumbstick scrolls horizontally and vertically by default and
-its analog game-controller axes are centered. Scroll rate follows stick
-strength. The default Settings mouse-toggle key switches between scrolling and
-regular cursor movement until Settings is left; cursor speed also follows stick
-strength. The default finger keys provide cut/copy/paste, undo/redo, save,
-find, browser back/forward, tabs, mouse buttons, and common navigation.
+continues reporting its analog game-controller axes so host tools can see the
+actual stick strength. Scroll rate follows a gentle strength curve for precise
+movement near center without excessive full-deflection scrolling. The default
+Settings mouse-toggle key switches between scrolling and regular cursor movement
+until Settings is left; cursor speed also follows stick strength. Thumbstick
+movement counts as input activity and wakes the OLED. The default finger keys
+provide cut/copy/paste, undo/redo, save, find, browser back/forward, tabs,
+mouse buttons, and common navigation.
 Those finger keys remain remappable. The five-way D-pad is reserved for OLED
 navigation while the menu is open, and the physical layout key remains owned
 by firmware.
@@ -311,18 +368,32 @@ live brightness preview; Left/Right edits the selected value and Menu exits.
 
 ## Supported MCUs
 
-Currently configs for STM32F103 and atmega32U4 are available, but STM32 is recommended, since the atmega may run out of flash with all features enabled.
+The complete shared firmware has targets for STM32F103 and Raspberry Pi Pico
+(RP2040). The Pico target has substantially more flash headroom but still needs
+physical validation.
 
-The maintained STM32F103 Vial build disables QMK's Caps Word, Magic, Layer
-Lock, Grave Escape, and Space Cadet subsystems to preserve flash for the
-controller-specific features. Grave Escape and Space Cadet are compact-keyboard
-conveniences rather than game-controller functions: Grave Escape combines
-Escape with grave/tilde behavior, while Space Cadet makes tapped Shift keys
-produce parentheses. Their Vial keycodes are therefore unavailable in this
-firmware. Ordinary Escape, grave, Shift, and parenthesis keycodes continue to
-work normally.
+This version does **not** support the standard ATmega32U4 Pro Micro. Although
+an inherited controller definition remains in the source tree, the current
+compact firmware exceeds the Pro Micro's Caterina application space by about
+12.5 KB. Its 1 KB EEPROM also cannot simultaneously hold the current Vial
+layers, macros, profile names, and Replicazeron metadata. A build that fits
+would have to omit most of the project's distinctive features, including the
+OLED interface and addressable RGB/OpenRGB, and reduce or redesign persistent
+configuration. A limited Pro Micro variant will only be considered if there is
+enough demand to justify maintaining and testing it. New and upgraded builds
+should use the STM32F103 Blue Pill or RP2040 target instead.
 
-With minor adjustments to Pinconfig it should be possible to use other MCUs that are supported by QMK
+The maintained STM32F103 Vial build disables QMK's Repeat Key, Caps Word,
+Magic, Layer Lock, Grave Escape, Space Cadet, and NKRO subsystems to preserve
+flash for the controller-specific features. The RP2040 Vial build enables all
+of those features. Grave Escape and Space Cadet are compact-keyboard
+conveniences: Grave Escape combines Escape with grave/tilde behavior, while
+Space Cadet makes tapped Shift keys produce parentheses. Their Vial keycodes
+are therefore available on RP2040 but not on the Blue Pill. Ordinary Escape,
+grave, Shift, and parenthesis keycodes continue to work normally on both.
+
+Other QMK-supported MCUs require their own pin configuration, resource review,
+firmware target, and hardware validation; compatibility should not be assumed.
 
 
 ## Wirering

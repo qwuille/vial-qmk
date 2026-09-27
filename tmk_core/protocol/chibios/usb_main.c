@@ -495,6 +495,22 @@ void send_joystick(report_joystick_t *report) {
 #endif
 }
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+void send_xinput(uint8_t *report, uint8_t length) {
+    if (length == 20) {
+        send_report(USB_ENDPOINT_IN_XINPUT, report, length);
+    }
+}
+
+void xinput_task(void) {
+    uint8_t buffer[XINPUT_EPSIZE];
+    while (receive_report(USB_ENDPOINT_OUT_XINPUT, buffer, sizeof(buffer))) {
+        /* Rumble and player-LED output are intentionally unsupported for now,
+         * but the OUT queue must be drained so the host never stalls it. */
+    }
+}
+#endif
+
 void send_digitizer(report_digitizer_t *report) {
 #ifdef DIGITIZER_ENABLE
     send_report(USB_ENDPOINT_IN_DIGITIZER, report, sizeof(report_digitizer_t));

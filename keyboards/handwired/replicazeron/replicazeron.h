@@ -64,6 +64,28 @@ enum kb_keycodes {
     SETTINGS_MOUSE_TOGGLE
 };
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+enum xinput_keycodes {
+    XI_A = QK_KB_0,
+    XI_B,
+    XI_X,
+    XI_Y,
+    XI_UP,
+    XI_DOWN,
+    XI_LEFT,
+    XI_RIGHT,
+    XI_LB,
+    XI_RB,
+    XI_LT,
+    XI_RT,
+    XI_BACK,
+    XI_START,
+    XI_LS,
+    XI_RS,
+    XI_GUIDE
+};
+#endif
+
 #ifdef VIA_ENABLE
 #    define REPLICAZERON_TITLE_COUNT 11
 #    define REPLICAZERON_TITLE_LENGTH 13
@@ -75,6 +97,14 @@ void replicazeron_read_macro_name(uint8_t macro, char name[REPLICAZERON_TITLE_LE
 uint8_t replicazeron_rgb_led_count(void);
 uint8_t replicazeron_rgb_speed_level(void);
 bool replicazeron_rgb_animation_uses_hue(rgb_animation_id_t animation);
+#    ifndef REPLICAZERON_COMPACT_RGB
 void replicazeron_rgb_reactive_trigger(void);
 void replicazeron_rgb_set_joystick_activity(int16_t x, int16_t y);
+#    else
+static inline void replicazeron_rgb_reactive_trigger(void) {}
+static inline void replicazeron_rgb_set_joystick_activity(int16_t x, int16_t y) {
+    (void)x;
+    (void)y;
+}
+#    endif
 #endif

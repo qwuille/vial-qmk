@@ -138,6 +138,15 @@ typedef struct {
     USB_Descriptor_Endpoint_t  Joystick_INEndpoint;
 #endif
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    // Xbox 360-compatible vendor interface. This remains part of the RP2040
+    // composite device so the keyboard and Raw HID configurator can coexist.
+    USB_Descriptor_Interface_t XInput_Interface;
+    uint8_t                    XInput_Function[16];
+    USB_Descriptor_Endpoint_t  XInput_INEndpoint;
+    USB_Descriptor_Endpoint_t  XInput_OUTEndpoint;
+#endif
+
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
     // Digitizer HID Interface
     USB_Descriptor_Interface_t Digitizer_Interface;
@@ -188,6 +197,10 @@ enum usb_interfaces {
 
 #if defined(JOYSTICK_ENABLE) && !defined(JOYSTICK_SHARED_EP)
     JOYSTICK_INTERFACE,
+#endif
+
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    XINPUT_INTERFACE,
 #endif
 
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
@@ -262,6 +275,15 @@ enum usb_endpoints {
 #    endif
 #endif
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    XINPUT_IN_EPNUM = NEXT_EPNUM,
+#    ifdef USB_ENDPOINTS_ARE_REORDERABLE
+#        define XINPUT_OUT_EPNUM XINPUT_IN_EPNUM
+#    else
+    XINPUT_OUT_EPNUM = NEXT_EPNUM,
+#    endif
+#endif
+
 #ifdef DIGITIZER_ENABLE
 #    if !defined(DIGITIZER_SHARED_EP)
     DIGITIZER_IN_EPNUM = NEXT_EPNUM,
@@ -292,6 +314,7 @@ enum usb_endpoints {
 #define CDC_NOTIFICATION_EPSIZE 8
 #define CDC_EPSIZE 16
 #define JOYSTICK_EPSIZE 8
+#define XINPUT_EPSIZE 32
 #define DIGITIZER_EPSIZE 8
 
 uint16_t get_usb_descriptor(const uint16_t wValue, const uint16_t wIndex, const uint16_t wLength, const void** const DescriptorAddress);

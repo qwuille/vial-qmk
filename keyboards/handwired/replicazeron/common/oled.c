@@ -215,8 +215,10 @@ static const char *get_rgb_animation_name(rgb_animation_id_t animation) {
             return "Rainbow";
         case RGB_ANIMATION_RAINBOW_SWIRL:
             return "Swirl";
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_ANIMATION_KNIGHT:
             return "Knight Rider";
+#endif
         case RGB_ANIMATION_TWINKLE:
             return "Twinkle";
         case RGB_ANIMATION_MOVING_RAINBOW:
@@ -225,12 +227,24 @@ static const char *get_rgb_animation_name(rgb_animation_id_t animation) {
             return "Hue Wave";
         case RGB_ANIMATION_HUE_PENDULUM:
             return "Hue Pendulum";
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_ANIMATION_CYLON:
             return "Cylon";
         case RGB_ANIMATION_PULSE:
             return "Pulse";
         case RGB_ANIMATION_REACTIVE_PULSE:
             return "Reactive Pulse";
+#endif
+        case RGB_ANIMATION_REACTIVE:
+            return "Reactive";
+        case RGB_ANIMATION_SPLASH:
+            return "Splash";
+        case RGB_ANIMATION_MULTISPLASH:
+            return "Multisplash";
+        case RGB_ANIMATION_REACTIVE_CROSS:
+            return "Reactive Cross";
+        case RGB_ANIMATION_SOLID_REACTIVE_WIDE:
+            return "Reactive Wide";
         case RGB_ANIMATION_BREATHING:
         default:
             return "Breathing";
@@ -453,6 +467,11 @@ static void draw_layout_browser(controller_state_t controller_state) {
 
 static void draw_mode_value(joystick_mode_t mode) {
     switch (mode) {
+#ifdef REPLICAZERON_XINPUT_ENABLE
+        case JOYSTICK_MODE_XINPUT:
+            oled_write_ln_P(PSTR("XInput + keys"), false);
+            break;
+#endif
         case JOYSTICK_MODE_WASD_SHIFT:
             oled_write_ln_P(PSTR("WASD + Shift"), false);
             break;

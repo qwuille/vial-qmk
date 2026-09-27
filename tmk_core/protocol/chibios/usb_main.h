@@ -34,6 +34,11 @@ void restart_usb_driver(USBDriver *usbp);
 
 bool send_report(usb_endpoint_in_lut_t endpoint, void *report, size_t size);
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+void send_xinput(uint8_t *report, uint8_t length);
+void xinput_task(void);
+#endif
+
 /* ---------------
  * USB Event queue
  * ---------------

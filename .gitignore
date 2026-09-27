@@ -38,6 +38,10 @@ quantum/version.h
 *.uf2
 *.vfw
 
+# Maintained Replicazeron release images
+!/handwired_replicazeron_stm32f103_vial.bin
+!/handwired_replicazeron_rp2040_vial.uf2
+
 # DD config at wrong location
 /keyboards/**/keymaps/*/info.json
 /keyboards/**/keymaps/*/keyboard.json
@@ -65,6 +69,8 @@ build/
 cmake-build-debug
 CMakeLists.txt
 *.pdf
+!docs/Replicazeron_RP2040_Wiring_Diagram.pdf
+!docs/Replicazeron_STM32F103_Wiring_Diagram.pdf
 
 # Let these ones be user specific, since we have so many different configurations
 *.code-workspace
@@ -88,6 +94,8 @@ tags
 *.apng
 *.mng
 *.svg
+!docs/replicazeron-rp2040-wiring-diagram.svg
+!docs/replicazeron-stm32f103-wiring-diagram.svg
 *.webp
 *.webm
 *.avi

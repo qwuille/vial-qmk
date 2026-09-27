@@ -2,6 +2,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#ifndef REPLICAZERON_COMPACT_RGB
+
 RGB_MATRIX_EFFECT(KNIGHT_RIDER)
 RGB_MATRIX_EFFECT(CYLON)
 RGB_MATRIX_EFFECT(PULSE)
@@ -235,3 +237,5 @@ bool REACTIVE_PULSE(effect_params_t *params) {
 }
 
 #endif
+
+#endif /* REPLICAZERON_COMPACT_RGB */

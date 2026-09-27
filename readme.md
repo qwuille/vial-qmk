@@ -13,24 +13,26 @@ existing models and the earlier hardware documentation should use the separate
 
 - Vial remapping, 16 named macros, and ten playable layouts plus a protected Settings
   layer.
-- Per-layout Joystick, WASD, and WASD + Shift modes.
+- Per-layout Joystick, WASD, and WASD + Shift modes, plus RP2040-only
+  XInput + keyboard layouts with freely assignable XInput buttons.
 - Settings-layer proportional page scrolling with a cursor toggle, plus CAD
   middle-drag, Shift+middle-drag, and right-drag thumbstick modes.
 - VialRGB/OpenRGB control through the existing Vial Raw HID interface.
-- Firmware-controlled lighting with eleven effects, including KITT-style
-  Knight Rider, Cylon, Pulse, and activity-driven Reactive Pulse.
+- Firmware-controlled lighting with reactive, splash, multisplash,
+  reactive-cross, and reactive-wide effects. The RP2040 build provides sixteen
+  effects in total; the flash-limited Blue Pill provides twelve.
 - Runtime addressable-strip length from 1 to 32 pixels; default 11.
 - Two independently configurable monochrome side LEDs, physically located
-  together on the right side of the controller. The left LED is PB13 and the
-  right LED is PB12.
+  together on the right side of the controller.
 - OLED menus and a standalone WebHID control deck.
-- Browser-assisted STM32duino DFU updates, with a PA12 reconnect workaround
-  for affected Blue Pill clones.
+- Browser-assisted STM32duino DFU and RP2040 PICOBOOT updates, with automatic
+  target selection and a PA12 reconnect workaround for affected Blue Pill
+  clones.
 - Addressable and side LEDs sleep when the USB host suspends.
 
-## Supported target
+## Supported targets
 
-The maintained and tested target is:
+The maintained and tested STM32 target is:
 
 ```text
 Keyboard: handwired/replicazeron/stm32f103
@@ -44,8 +46,39 @@ Build it with:
 qmk compile -kb handwired/replicazeron/stm32f103 -km vial
 ```
 
-The legacy Pro Micro and experimental RP2040 definitions are not release
-targets for the complete feature set documented here.
+The Raspberry Pi Pico target uses the same Vial keymap and Replicazeron feature
+code and compiles successfully to a UF2.
+
+> [!WARNING]
+> The RP2040 target, including its XInput interface and browser-flashing path,
+> has not yet been verified on physical hardware. Treat the current UF2 as an
+> experimental build and keep BOOTSEL recovery available. The STM32F103 target
+> is the validated release target.
+
+Build the experimental RP2040 firmware with:
+
+```sh
+qmk compile -kb handwired/replicazeron/rp2040 -km vial
+```
+
+Hold **BOOTSEL** while connecting the Pico, then copy
+`handwired_replicazeron_rp2040_vial.uf2` to the `RPI-RP2` drive.
+
+### Pro Micro support
+
+This version does **not** support the standard ATmega32U4 Pro Micro. A build
+probe found that the current compact firmware exceeds the Pro Micro's
+Caterina application space by approximately 12.5 KB, and its 1 KB EEPROM
+cannot hold the present Vial layers, macro data, profile names, and
+Replicazeron metadata together.
+
+A Pro Micro build could only fit as a substantially reduced variant. It would
+lose most of the features that distinguish this project, including the OLED
+interface and addressable RGB/OpenRGB support, and would require reduced or
+redesigned persistent configuration. Such a variant will only be considered
+if there is enough community demand to justify maintaining and testing it.
+For new builds, migrate to the supported STM32F103 Blue Pill or RP2040 target
+instead.
 
 ## Branches and maintenance scope
 
@@ -64,6 +97,10 @@ documented core integrations, not every inherited keyboard definition.
 - [Complete component, pin, power, and compatibility guide](keyboards/handwired/replicazeron/HARDWARE.md)
 - [Firmware features, OpenRGB, WebHID, DFU, wiring, and usage](keyboards/handwired/replicazeron/readme.md)
 - [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
+- [Interactive RP2040 wiring guide](docs/replicazeron-rp2040-wiring-diagram.html) and
+  [offline PDF](docs/Replicazeron_RP2040_Wiring_Diagram.pdf)
+- [Interactive STM32F103 wiring guide](docs/replicazeron-stm32f103-wiring-diagram.html) and
+  [offline PDF](docs/Replicazeron_STM32F103_Wiring_Diagram.pdf)
 
 ### Hardware, models, and earlier build resources
 

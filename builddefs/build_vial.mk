@@ -35,5 +35,7 @@ endif
 # Generate Vial layout definition header from JSON
 $(QUANTUM_DIR)/vial.c: $(INTERMEDIATE_OUTPUT)/src/vial_generated_keyboard_definition.h
 
-$(INTERMEDIATE_OUTPUT)/src/vial_generated_keyboard_definition.h: $(KEYMAP_PATH)/vial.json
-	python3 util/vial_generate_definition.py $(KEYMAP_PATH)/vial.json $(INTERMEDIATE_OUTPUT)/src/vial_generated_keyboard_definition.h
+VIAL_KEYBOARD_DEFINITION ?= $(KEYMAP_PATH)/vial.json
+
+$(INTERMEDIATE_OUTPUT)/src/vial_generated_keyboard_definition.h: $(VIAL_KEYBOARD_DEFINITION)
+	python3 util/vial_generate_definition.py $(VIAL_KEYBOARD_DEFINITION) $(INTERMEDIATE_OUTPUT)/src/vial_generated_keyboard_definition.h

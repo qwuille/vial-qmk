@@ -1058,6 +1058,46 @@ const USB_Descriptor_Configuration_t PROGMEM ConfigurationDescriptor = {
     },
 #endif
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    .XInput_Interface = {
+        .Header = {
+            .Size = sizeof(USB_Descriptor_Interface_t),
+            .Type = DTYPE_Interface
+        },
+        .InterfaceNumber   = XINPUT_INTERFACE,
+        .AlternateSetting  = 0x00,
+        .TotalEndpoints    = 2,
+        .Class             = 0xFF,
+        .SubClass          = 0x5D,
+        .Protocol          = 0x01,
+        .InterfaceStrIndex = NO_DESCRIPTOR
+    },
+    .XInput_Function = {
+        0x10, 0x21, 0x10, 0x01, 0x01, 0x24, 0x81, 0x14,
+        0x03, 0x00, 0x03, 0x13, 0x02, 0x00, 0x03, 0x00
+    },
+    .XInput_INEndpoint = {
+        .Header = {
+            .Size = sizeof(USB_Descriptor_Endpoint_t),
+            .Type = DTYPE_Endpoint
+        },
+        .EndpointAddress   = (ENDPOINT_DIR_IN | XINPUT_IN_EPNUM),
+        .Attributes        = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize      = XINPUT_EPSIZE,
+        .PollingIntervalMS = 0x04
+    },
+    .XInput_OUTEndpoint = {
+        .Header = {
+            .Size = sizeof(USB_Descriptor_Endpoint_t),
+            .Type = DTYPE_Endpoint
+        },
+        .EndpointAddress   = (ENDPOINT_DIR_OUT | XINPUT_OUT_EPNUM),
+        .Attributes        = (EP_TYPE_INTERRUPT | ENDPOINT_ATTR_NO_SYNC | ENDPOINT_USAGE_DATA),
+        .EndpointSize      = XINPUT_EPSIZE,
+        .PollingIntervalMS = 0x08
+    },
+#endif
+
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
     /*
      * Digitizer

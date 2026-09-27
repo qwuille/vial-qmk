@@ -22,6 +22,12 @@
 #if !defined(JOYSTICK_IN_CAPACITY)
 #    define JOYSTICK_IN_CAPACITY USB_DEFAULT_BUFFER_CAPACITY
 #endif
+#if !defined(XINPUT_IN_CAPACITY)
+#    define XINPUT_IN_CAPACITY USB_DEFAULT_BUFFER_CAPACITY
+#endif
+#if !defined(XINPUT_OUT_CAPACITY)
+#    define XINPUT_OUT_CAPACITY USB_DEFAULT_BUFFER_CAPACITY
+#endif
 
 #if !defined(DIGITIZER_IN_CAPACITY)
 #    define DIGITIZER_IN_CAPACITY USB_DEFAULT_BUFFER_CAPACITY
@@ -78,6 +84,10 @@ typedef enum {
     USB_ENDPOINT_IN_JOYSTICK,
 #endif
 
+#if defined(REPLICAZERON_XINPUT_ENABLE)
+    USB_ENDPOINT_IN_XINPUT,
+#endif
+
 #if defined(DIGITIZER_ENABLE) && !defined(DIGITIZER_SHARED_EP)
     USB_ENDPOINT_IN_DIGITIZER,
 #endif
@@ -126,6 +136,9 @@ extern usb_endpoint_in_lut_t usb_endpoint_interface_lut[TOTAL_INTERFACES];
 typedef enum {
 #if defined(RAW_ENABLE)
     USB_ENDPOINT_OUT_RAW,
+#endif
+#if defined(REPLICAZERON_XINPUT_ENABLE)
+    USB_ENDPOINT_OUT_XINPUT,
 #endif
 #if defined(MIDI_ENABLE)
     USB_ENDPOINT_OUT_MIDI,

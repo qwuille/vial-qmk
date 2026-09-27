@@ -55,6 +55,11 @@ int main(void) {
         raw_hid_task();
 #endif
 
+#ifdef REPLICAZERON_XINPUT_ENABLE
+        void xinput_task(void);
+        xinput_task();
+#endif
+
 #ifdef CONSOLE_ENABLE
         void console_task(void);
         console_task();

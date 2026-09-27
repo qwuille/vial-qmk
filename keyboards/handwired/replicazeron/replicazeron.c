@@ -15,9 +15,13 @@
  */
 
 #include "replicazeron.h"
+#include "usb_device_state.h"
 #include "usb_util.h"
 #include "eeconfig.h"
 #include "raw_hid.h"
+#ifdef REPLICAZERON_XINPUT_ENABLE
+#    include "usb_main.h"
+#endif
 #ifdef MOUSEKEY_ENABLE
 #    include "mousekey.h"
 #endif
@@ -37,6 +41,14 @@
 #endif
 
 controller_state_t controller_state;
+
+#ifdef REPLICAZERON_DISABLE_BOOTMAGIC
+/* VIA forces Bootmagic on. Some hand-wired targets can read matrix (0,0) as
+ * asserted during startup, which would otherwise jump directly to ROM USB. */
+bool bootmagic_should_reset(void) {
+    return false;
+}
+#endif
 
 #ifdef RGB_MATRIX_ENABLE
 static uint8_t rgb_animation_mode(rgb_animation_id_t animation);
@@ -97,12 +109,30 @@ static bool side_led_preview_requested;
 static bool bootloader_requested;
 static bool bootloader_usb_disconnect_assist;
 static uint32_t bootloader_request_started;
+#ifdef REPLICAZERON_XINPUT_ENABLE
+typedef struct __attribute__((packed)) {
+    uint8_t  report_id;
+    uint8_t  length;
+    uint16_t buttons;
+    uint8_t  left_trigger;
+    uint8_t  right_trigger;
+    int16_t  left_x;
+    int16_t  left_y;
+    int16_t  right_x;
+    int16_t  right_y;
+    uint8_t  reserved[6];
+} replicazeron_xinput_report_t;
+
+static replicazeron_xinput_report_t xinput_report = {.length = 0x14};
+static uint16_t xinput_report_timer;
+#endif
 #ifdef VIA_ENABLE
 static bool configuration_hid_active;
 static uint32_t configuration_hid_timer;
 #endif
 #ifdef VIALRGB_ENABLE
 static uint32_t openrgb_hid_timer;
+static uint8_t  openrgb_virtual_keycode_column = UINT8_MAX;
 #endif
 #ifdef MOUSEKEY_ENABLE
 static bool settings_mouse_middle;
@@ -116,11 +146,11 @@ static uint16_t settings_mouse_report_timer;
 #define REPLICAZERON_FACTORY_RESET_HOLD_MS 2000
 #define REPLICAZERON_SIDE_LED_PREVIEW_MS 1200
 #define REPLICAZERON_BOOTLOADER_DELAY_MS 500
-#define REPLICAZERON_STICK_MAX_DISTANCE 724
+#define REPLICAZERON_SCROLL_MAX_DISTANCE 512
 #define REPLICAZERON_CURSOR_REPORT_INTERVAL_MS 16
 #define REPLICAZERON_CURSOR_MAX_STEP 16
-#define REPLICAZERON_SCROLL_SLOW_INTERVAL_MS 140
-#define REPLICAZERON_SCROLL_FAST_INTERVAL_MS 24
+#define REPLICAZERON_SCROLL_SLOW_INTERVAL_MS 240
+#define REPLICAZERON_SCROLL_FAST_INTERVAL_MS 70
 
 #ifdef VIA_ENABLE
 #    define REPLICAZERON_TITLE_SIGNATURE_SIZE 2
@@ -189,7 +219,10 @@ static uint8_t settings_mouse_strength(uint16_t distance) {
         return 0;
     }
 
-    uint16_t range = deadzone < REPLICAZERON_STICK_MAX_DISTANCE ? REPLICAZERON_STICK_MAX_DISTANCE - deadzone : 1;
+    /* Scrolling follows one principal direction at a time, so normalize to
+     * the full range of one axis. Using the diagonal maximum here prevented
+     * ordinary straight stick travel from ever reaching the fast end. */
+    uint16_t range = deadzone < REPLICAZERON_SCROLL_MAX_DISTANCE ? REPLICAZERON_SCROLL_MAX_DISTANCE - deadzone : 1;
     uint16_t offset = MIN(distance - deadzone, range);
     return (uint8_t)(((uint32_t)offset * UINT8_MAX) / range);
 }
@@ -197,15 +230,29 @@ static uint8_t settings_mouse_strength(uint16_t distance) {
 static void send_settings_mouse_movement(bool up, bool down, bool left, bool right, uint8_t strength, bool cursor_mode) {
     uint16_t interval = REPLICAZERON_CURSOR_REPORT_INTERVAL_MS;
     if (!cursor_mode) {
+        /* Wheel reports are discrete, so represent stick strength through a
+         * deliberately gentle report-rate curve. Squaring the normalized
+         * strength gives fine control near the deadzone without allowing full
+         * deflection to flood applications with wheel ticks. */
+        uint8_t curved_strength = ((uint16_t)strength * strength) / UINT8_MAX;
         interval = REPLICAZERON_SCROLL_SLOW_INTERVAL_MS -
-                   ((uint32_t)strength * (REPLICAZERON_SCROLL_SLOW_INTERVAL_MS - REPLICAZERON_SCROLL_FAST_INTERVAL_MS)) / UINT8_MAX;
+                   ((uint32_t)curved_strength * (REPLICAZERON_SCROLL_SLOW_INTERVAL_MS - REPLICAZERON_SCROLL_FAST_INTERVAL_MS)) / UINT8_MAX;
     }
 
-    if (settings_mouse_movement_active && timer_elapsed(settings_mouse_report_timer) < interval) {
+    if (!settings_mouse_movement_active) {
+        settings_mouse_movement_active = true;
+        settings_mouse_report_timer = timer_read();
+
+        /* Do not emit an immediate wheel tick every time center noise crosses
+         * the deadzone. A small deflection must remain active for its slow
+         * interval, while cursor mode should still respond immediately. */
+        if (!cursor_mode) {
+            return;
+        }
+    } else if (timer_elapsed(settings_mouse_report_timer) < interval) {
         return;
     }
 
-    settings_mouse_movement_active = true;
     settings_mouse_report_timer = timer_read();
 
     report_mouse_t report = mousekey_get_report();
@@ -261,8 +308,18 @@ static void apply_layout_mode(uint8_t layout) {
     }
 
     release_wasd_keys();
-    controller_state.wasdMode = controller_state.layoutModes[layout] != JOYSTICK_MODE_ANALOG;
+    controller_state.wasdMode = controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD ||
+                                controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD_SHIFT;
     controller_state.wasdShiftMode = controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD_SHIFT;
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    if (controller_state.layoutModes[layout] != JOYSTICK_MODE_XINPUT) {
+        xinput_report.buttons = 0;
+        xinput_report.left_trigger = 0;
+        xinput_report.right_trigger = 0;
+        xinput_report.left_x = 0;
+        xinput_report.left_y = 0;
+    }
+#endif
 }
 
 #ifdef VIA_ENABLE
@@ -608,6 +665,20 @@ uint8_t replicazeron_rgb_led_count(void) {
     return controller_state.rgbLedCount;
 }
 
+uint8_t rgb_matrix_map_row_column_to_led_kb(uint8_t row, uint8_t column, uint8_t *led_i) {
+    if (row >= MATRIX_ROWS || column >= MATRIX_COLS || controller_state.rgbLedCount == 0) {
+        return 0;
+    }
+
+    /* LED 0 normally starts above COL_3 at the index-finger/thumb end, then
+     * the strip runs toward middle, ring, and little finger. Thumb controls
+     * use the same nearest endpoint as the index finger. */
+    uint8_t strip_group = column >= 3 ? 0 : 3 - column;
+    led_i[0] = controller_state.rgbLedCount <= 1 ? 0 :
+                   ((uint16_t)strip_group * (controller_state.rgbLedCount - 1)) / 3;
+    return 1;
+}
+
 static void apply_rgb_led_count(void) {
     for (uint8_t led = 0; led < RGB_MATRIX_LED_COUNT; ++led) {
         g_led_config.flags[led] = led < controller_state.rgbLedCount ? LED_FLAG_UNDERGLOW : 0;
@@ -646,8 +717,25 @@ bool vialrgb_get_led_info_kb(uint16_t led, uint8_t *output) {
     output[0] = strip_count <= 1 ? 112 : ((uint32_t)led * 224) / (strip_count - 1);
     output[1] = 16;
     output[2] = LED_FLAG_UNDERGLOW;
+    /* OpenRGB's VialRGB controller currently always creates a keyboard matrix
+     * zone and ignores the underglow flag for zone construction. Expose the
+     * strip as one virtual row so all pixels remain ordered and addressable. */
     output[3] = 0;
     output[4] = led;
+    openrgb_virtual_keycode_column = led;
+    return true;
+}
+
+bool dynamic_keymap_get_keycode_kb(uint8_t layer, uint8_t row, uint8_t column, uint16_t *keycode) {
+    bool is_openrgb_lookup = layer == 0 && row == 0 && column == openrgb_virtual_keycode_column && column < controller_state.rgbLedCount;
+    openrgb_virtual_keycode_column = UINT8_MAX;
+    if (!is_openrgb_lookup) {
+        return false;
+    }
+
+    /* OpenRGB currently names every VialRGB pixel as a keyboard key. Give the
+     * virtual strip row stable A-Z, 1-6 labels without changing the keymap. */
+    *keycode = column < 26 ? KC_A + column : KC_1 + (column - 26);
     return true;
 }
 #endif
@@ -763,6 +851,9 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_DISPLAY_SET 0x14
 #    define REPLICAZERON_LAYOUT_DISPLAY_GET 0x15
 #    define REPLICAZERON_LAYOUT_DISPLAY_SET 0x16
+#    define REPLICAZERON_DEVICE_GET 0x17
+#    define REPLICAZERON_DEVICE_STM32F103 0x01
+#    define REPLICAZERON_DEVICE_RP2040 0x02
 
 char replicazeron_titles[REPLICAZERON_TITLE_COUNT][REPLICAZERON_TITLE_LENGTH] = {
     "Casual       ",
@@ -829,7 +920,14 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
         return;
     }
 
-    if (data[1] == REPLICAZERON_CONFIG_HEARTBEAT) {
+    if (data[1] == REPLICAZERON_DEVICE_GET) {
+#ifdef RP2040
+        data[3] = REPLICAZERON_DEVICE_RP2040;
+#else
+        data[3] = REPLICAZERON_DEVICE_STM32F103;
+#endif
+        data[4] = 1; /* Device-identification reply format version. */
+    } else if (data[1] == REPLICAZERON_CONFIG_HEARTBEAT) {
         data[3] = 1;
     } else if (data[1] == REPLICAZERON_SETTINGS_STICK_GET) {
         data[3] = controller_state.settingsStickMode;
@@ -1085,6 +1183,21 @@ static uint16_t axis_magnitude(int16_t value) {
     return value < 0 ? -value : value;
 }
 
+/* The action deadzone historically did not affect the analog HID report, so
+ * a centered stick could still expose a few percent of ADC noise to games and
+ * input monitors. Remove that noise per axis, then linearly expand the
+ * remaining range so motion begins at zero and still reaches full scale. */
+static int16_t apply_report_deadzone(int16_t value) {
+    uint16_t magnitude = axis_magnitude(value);
+    uint16_t deadzone  = controller_state.deadzone;
+    if (magnitude <= deadzone) {
+        return 0;
+    }
+
+    uint16_t eased = ((uint32_t)(magnitude - deadzone) * 512) / (512 - deadzone);
+    return value < 0 ? -(int16_t)eased : (int16_t)eased;
+}
+
 static void apply_axis_filter(int16_t *x, int16_t *y, uint8_t strength) {
     if (strength == 0) {
         return;
@@ -1127,15 +1240,97 @@ uint16_t joystick_axis_sample(uint8_t axis) {
         thumbstick_unfiltered_position = get_thumbstick_polar_position(x, y);
 #endif
         apply_axis_filter(&x, &y, controller_state.filterStrength);
-        filtered_axes[0] = x;
-        filtered_axes[1] = y;
-        filtered_samples[0] = (uint16_t)(filtered_axes[0] + 512);
-        filtered_samples[1] = (uint16_t)(filtered_axes[1] + 512);
+        /* A small fixed-point low-pass filter removes ADC jitter without any
+         * extra EEPROM state or floating-point code on the Blue Pill. */
+        filtered_axes[0] += (x - filtered_axes[0]) / 4;
+        filtered_axes[1] += (y - filtered_axes[1]) / 4;
+        filtered_samples[0] = (uint16_t)(apply_report_deadzone(filtered_axes[0]) + 512);
+        filtered_samples[1] = (uint16_t)(apply_report_deadzone(filtered_axes[1]) + 512);
     }
 
-    /* WASD profiles must not also expose a moving analog stick to games. The
-     * physical values remain cached for the keyboard-emulation path below. */
-    return controller_state.wasdMode || controller_state.highestActiveLayer == _SETTINGS ? 512 : filtered_samples[axis];
+    /* WASD profiles must not also expose a moving analog stick to games. On
+     * Settings, however, the default page-scroll/cursor tool intentionally
+     * remains an analog joystick too, so host-side tools can see the actual
+     * deflection strength. Drag-only Settings tools keep the axes centered. */
+    if (controller_state.highestActiveLayer == _SETTINGS) {
+        return controller_state.settingsStickMode == SETTINGS_STICK_MOUSE ? filtered_samples[axis] : 512;
+    }
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    if (controller_state.layoutModes[controller_state.activeLayout] == JOYSTICK_MODE_XINPUT) {
+        return 512;
+    }
+#endif
+    return controller_state.wasdMode ? 512 : filtered_samples[axis];
+}
+#endif
+
+#ifdef REPLICAZERON_XINPUT_ENABLE
+static bool xinput_mode_active(void) {
+    return controller_state.highestActiveLayer < LAYOUT_COUNT &&
+           controller_state.layoutModes[controller_state.activeLayout] == JOYSTICK_MODE_XINPUT;
+}
+
+static uint16_t xinput_button_mask(uint16_t keycode) {
+    switch (keycode) {
+        case XI_UP: return 0x0001;
+        case XI_DOWN: return 0x0002;
+        case XI_LEFT: return 0x0004;
+        case XI_RIGHT: return 0x0008;
+        case XI_START: return 0x0010;
+        case XI_BACK: return 0x0020;
+        case XI_LS: return 0x0040;
+        case XI_RS: return 0x0080;
+        case XI_LB: return 0x0100;
+        case XI_RB: return 0x0200;
+        case XI_GUIDE: return 0x0400;
+        case XI_A: return 0x1000;
+        case XI_B: return 0x2000;
+        case XI_X: return 0x4000;
+        case XI_Y: return 0x8000;
+        default: return 0;
+    }
+}
+
+static bool process_xinput_keycode(uint16_t keycode, bool pressed) {
+    if (keycode < XI_A || keycode > XI_GUIDE) {
+        return false;
+    }
+
+    /* XInput assignments deliberately remain in EEPROM when a layout changes
+     * mode. Outside XInput they are consumed as inert keys, equivalent to
+     * KC_NO, so switching back restores the user's controller mapping. */
+    if (!xinput_mode_active()) {
+        return true;
+    }
+
+    if (keycode == XI_LT) {
+        xinput_report.left_trigger = pressed ? UINT8_MAX : 0;
+    } else if (keycode == XI_RT) {
+        xinput_report.right_trigger = pressed ? UINT8_MAX : 0;
+    } else {
+        uint16_t mask = xinput_button_mask(keycode);
+        if (pressed) {
+            xinput_report.buttons |= mask;
+        } else {
+            xinput_report.buttons &= ~mask;
+        }
+    }
+    return true;
+}
+
+static void update_xinput_report(void) {
+    if (timer_elapsed(xinput_report_timer) < 4) {
+        return;
+    }
+    xinput_report_timer = timer_read();
+    if (xinput_mode_active()) {
+        xinput_report.left_x = (int16_t)(filtered_axes[0] * 64);
+        xinput_report.left_y = (int16_t)(-filtered_axes[1] * 64);
+    } else {
+        xinput_report.left_x = 0;
+        xinput_report.left_y = 0;
+    }
+    send_xinput((uint8_t *)&xinput_report, sizeof(xinput_report));
 }
 #endif
 
@@ -1216,6 +1411,12 @@ void housekeeping_task_kb(void) {
     }
 
     update_thumbstick_position(filtered_axes[0], filtered_axes[1]);
+#    ifdef REPLICAZERON_XINPUT_ENABLE
+    update_xinput_report();
+#    endif
+    if (thumbstick_polar_position.distance >= controller_state.deadzone) {
+        last_pointing_device_activity_trigger();
+    }
 #    ifdef MOUSEKEY_ENABLE
     update_settings_mouse();
 #    endif
@@ -1268,8 +1469,10 @@ static uint8_t rgb_animation_mode(rgb_animation_id_t animation) {
             return RGB_MATRIX_CYCLE_ALL;
         case RGB_ANIMATION_RAINBOW_SWIRL:
             return RGB_MATRIX_CYCLE_SPIRAL;
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_ANIMATION_KNIGHT:
             return RGB_MATRIX_CUSTOM_KNIGHT_RIDER;
+#endif
         case RGB_ANIMATION_TWINKLE:
             return RGB_MATRIX_JELLYBEAN_RAINDROPS;
         case RGB_ANIMATION_MOVING_RAINBOW:
@@ -1278,12 +1481,24 @@ static uint8_t rgb_animation_mode(rgb_animation_id_t animation) {
             return RGB_MATRIX_HUE_WAVE;
         case RGB_ANIMATION_HUE_PENDULUM:
             return RGB_MATRIX_HUE_PENDULUM;
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_ANIMATION_CYLON:
             return RGB_MATRIX_CUSTOM_CYLON;
         case RGB_ANIMATION_PULSE:
             return RGB_MATRIX_CUSTOM_PULSE;
         case RGB_ANIMATION_REACTIVE_PULSE:
             return RGB_MATRIX_CUSTOM_REACTIVE_PULSE;
+#endif
+        case RGB_ANIMATION_REACTIVE:
+            return RGB_MATRIX_SOLID_REACTIVE;
+        case RGB_ANIMATION_SPLASH:
+            return RGB_MATRIX_SPLASH;
+        case RGB_ANIMATION_MULTISPLASH:
+            return RGB_MATRIX_MULTISPLASH;
+        case RGB_ANIMATION_REACTIVE_CROSS:
+            return RGB_MATRIX_SOLID_REACTIVE_CROSS;
+        case RGB_ANIMATION_SOLID_REACTIVE_WIDE:
+            return RGB_MATRIX_SOLID_REACTIVE_WIDE;
         case RGB_ANIMATION_BREATHING:
         default:
             return RGB_MATRIX_BREATHING;
@@ -1296,8 +1511,10 @@ static rgb_animation_id_t rgb_animation_from_mode(uint8_t mode) {
             return RGB_ANIMATION_RAINBOW_MOOD;
         case RGB_MATRIX_CYCLE_SPIRAL:
             return RGB_ANIMATION_RAINBOW_SWIRL;
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_MATRIX_CUSTOM_KNIGHT_RIDER:
             return RGB_ANIMATION_KNIGHT;
+#endif
         case RGB_MATRIX_JELLYBEAN_RAINDROPS:
             return RGB_ANIMATION_TWINKLE;
         case RGB_MATRIX_RAINBOW_MOVING_CHEVRON:
@@ -1306,12 +1523,24 @@ static rgb_animation_id_t rgb_animation_from_mode(uint8_t mode) {
             return RGB_ANIMATION_HUE_WAVE;
         case RGB_MATRIX_HUE_PENDULUM:
             return RGB_ANIMATION_HUE_PENDULUM;
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_MATRIX_CUSTOM_CYLON:
             return RGB_ANIMATION_CYLON;
         case RGB_MATRIX_CUSTOM_PULSE:
             return RGB_ANIMATION_PULSE;
         case RGB_MATRIX_CUSTOM_REACTIVE_PULSE:
             return RGB_ANIMATION_REACTIVE_PULSE;
+#endif
+        case RGB_MATRIX_SOLID_REACTIVE:
+            return RGB_ANIMATION_REACTIVE;
+        case RGB_MATRIX_SPLASH:
+            return RGB_ANIMATION_SPLASH;
+        case RGB_MATRIX_MULTISPLASH:
+            return RGB_ANIMATION_MULTISPLASH;
+        case RGB_MATRIX_SOLID_REACTIVE_CROSS:
+            return RGB_ANIMATION_REACTIVE_CROSS;
+        case RGB_MATRIX_SOLID_REACTIVE_WIDE:
+            return RGB_ANIMATION_SOLID_REACTIVE_WIDE;
         default:
             return RGB_ANIMATION_BREATHING;
     }
@@ -1345,12 +1574,21 @@ uint8_t replicazeron_rgb_speed_level(void) {
 bool replicazeron_rgb_animation_uses_hue(rgb_animation_id_t animation) {
     switch (animation) {
         case RGB_ANIMATION_BREATHING:
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_ANIMATION_KNIGHT:
+#endif
         case RGB_ANIMATION_HUE_WAVE:
         case RGB_ANIMATION_HUE_PENDULUM:
+#ifndef REPLICAZERON_COMPACT_RGB
         case RGB_ANIMATION_CYLON:
         case RGB_ANIMATION_PULSE:
         case RGB_ANIMATION_REACTIVE_PULSE:
+#endif
+        case RGB_ANIMATION_REACTIVE:
+        case RGB_ANIMATION_SPLASH:
+        case RGB_ANIMATION_MULTISPLASH:
+        case RGB_ANIMATION_REACTIVE_CROSS:
+        case RGB_ANIMATION_SOLID_REACTIVE_WIDE:
             return true;
         default:
             return false;
@@ -1720,6 +1958,19 @@ void suspend_wakeup_init_kb(void) {
     suspend_wakeup_init_user();
 }
 
+void notify_usb_device_state_change_kb(struct usb_device_state usb_state) {
+#ifdef RGB_MATRIX_ENABLE
+    /* Some PCs leave USB standby power enabled without entering the normal
+     * suspend path during shutdown. Clear OpenRGB's last latched frame when
+     * the device is no longer configured so the strip cannot remain lit. */
+    if (controller_state.openrgbEnabled && usb_state.configure_state != USB_DEVICE_STATE_CONFIGURED) {
+        rgb_matrix_set_color_all(0, 0, 0);
+        rgb_matrix_update_pwm_buffers();
+    }
+#endif
+    notify_usb_device_state_change_user(usb_state);
+}
+
 #ifdef OLED_ENABLE
 bool oled_task_kb(void) {
     if (!oled_task_user()) {
@@ -1789,6 +2040,12 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         record->event.key.col == REPLICAZERON_SETTINGS_MOUSE_TOGGLE_COL && keycode == KC_APP) {
         keycode = SETTINGS_MOUSE_TOGGLE;
     }
+
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    if (process_xinput_keycode(keycode, record->event.pressed)) {
+        return false;
+    }
+#endif
 
     if (!process_record_user(keycode, record)) {
         return false;

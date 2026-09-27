@@ -45,7 +45,19 @@ uint8_t dynamic_keymap_get_layer_count(void) {
     return DYNAMIC_KEYMAP_LAYER_COUNT;
 }
 
+__attribute__((weak)) bool dynamic_keymap_get_keycode_kb(uint8_t layer, uint8_t row, uint8_t column, uint16_t *keycode) {
+    (void)layer;
+    (void)row;
+    (void)column;
+    (void)keycode;
+    return false;
+}
+
 uint16_t dynamic_keymap_get_keycode(uint8_t layer, uint8_t row, uint8_t column) {
+    uint16_t keycode;
+    if (dynamic_keymap_get_keycode_kb(layer, row, column, &keycode)) {
+        return keycode;
+    }
     if (layer >= DYNAMIC_KEYMAP_LAYER_COUNT || row >= MATRIX_ROWS || column >= MATRIX_COLS) {
         return KC_NO;
     }

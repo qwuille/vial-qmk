@@ -7,6 +7,13 @@
 #define VIAL_UNLOCK_COMBO_ROWS { 4, 4 }
 #define VIAL_UNLOCK_COMBO_COLS { 0, 3 }
 
+/* Key-reactive strip effects exposed by the on-device RGB animation menu. */
+#define ENABLE_RGB_MATRIX_SOLID_REACTIVE
+#define ENABLE_RGB_MATRIX_SPLASH
+#define ENABLE_RGB_MATRIX_MULTISPLASH
+#define ENABLE_RGB_MATRIX_SOLID_REACTIVE_CROSS
+#define ENABLE_RGB_MATRIX_SOLID_REACTIVE_WIDE
+
 /* Keep device-specific metadata out of VIA's dynamic keymap and macro data.
  * Reserving the tail preserves the existing dynamic-keymap start address. */
 #define REPLICAZERON_METADATA_EEPROM_SIZE 288

@@ -1,0 +1,272 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 1100" role="img" aria-labelledby="title description">
+  <title id="title">Replicazeron RP2040 wiring diagram</title>
+  <desc id="description">Assembly wiring for the 6 by 5 key harness, Raspberry Pi Pico header, OLED, analog thumbstick, status LEDs and addressable lighting interface.</desc>
+  <style>
+    text { font-family: "Segoe UI", Arial, sans-serif; fill: #10242a; }
+    .mono { font-family: Consolas, "Courier New", monospace; }
+    .sheet { fill: #ffffff; stroke: #8aa4aa; stroke-width: 1.5; }
+    .zone { fill: #f8fbfc; stroke: #7d9aa1; stroke-width: 1.5; }
+    .zone-head { fill: #e8f5f7; }
+    .mcu { fill: #daf0f3; stroke: #07566a; stroke-width: 2.2; }
+    .wire { fill: none; stroke: #235865; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .matrix-wire { fill: none; stroke: #6750a4; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .signal-wire { fill: none; stroke: #087d98; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .power-wire { fill: none; stroke: #c63d24; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .ground-wire { fill: none; stroke: #3c4a50; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .symbol { fill: #ffffff; stroke: #07566a; stroke-width: 1.8; }
+    .node { fill: #6750a4; }
+    .pin { font: 12px Consolas, "Courier New", monospace; }
+    .pin-small { font: 10px Consolas, "Courier New", monospace; }
+    .ref { font: 700 11px Consolas, "Courier New", monospace; fill: #07566a; }
+    .value { font: 9px Consolas, "Courier New", monospace; fill: #527078; }
+    .label { font-size: 13px; font-weight: 700; }
+    .small { font-size: 10px; fill: #405b62; }
+    .tiny { font-size: 8px; fill: #527078; }
+    .zone-title { font-size: 15px; font-weight: 700; fill: #07566a; }
+    .net-text { font: 700 10px Consolas, "Courier New", monospace; fill: #493985; }
+    .net-tag { fill: #f0ecfb; stroke: #6750a4; stroke-width: 1.2; }
+    .danger { fill: #fff1ec; stroke: #c63d24; stroke-width: 1.6; }
+    .warning-text { font-size: 11px; font-weight: 700; fill: #8b2512; }
+    .nc { stroke: #8aa0a5; stroke-width: 1.5; }
+    #little-finger text.small,
+    #ring-finger text.small,
+    #middle-finger text.small,
+    #index-finger text.small { font-size: 8px; transform: translateX(-4px); }
+  </style>
+
+  <defs>
+    <g id="switch-diode">
+      <path d="M0 0 H24 M29 0 L58 -12 M64 0 H86" class="matrix-wire"/>
+      <circle cx="27" cy="0" r="3" class="node"/>
+      <circle cx="61" cy="0" r="3" class="node"/>
+      <path d="M86 -11 V11 L106 0 Z M109 -12 V12 M109 0 H136" class="matrix-wire"/>
+    </g>
+    <g id="ground">
+      <path d="M0 0 V10 M-13 10 H13 M-9 15 H9 M-5 20 H5" class="ground-wire"/>
+    </g>
+    <g id="power3v3">
+      <path d="M0 18 V0 M-7 7 L0 0 L7 7" class="power-wire"/>
+      <text x="0" y="-5" text-anchor="middle" class="net-text" fill="#a8321f">+3V3</text>
+    </g>
+    <g id="power5v">
+      <path d="M0 18 V0 M-7 7 L0 0 L7 7" class="power-wire"/>
+      <text x="0" y="-5" text-anchor="middle" class="net-text" fill="#a8321f">+5V</text>
+    </g>
+  </defs>
+
+  <rect x="12" y="12" width="1576" height="1076" class="sheet"/>
+  <path d="M22 42 H1578 M22 1055 H1578" stroke="#cad8da"/>
+  <text x="32" y="34" font-size="22" font-weight="700">REPLICAZERON · RP2040 WIRING DIAGRAM</text>
+  <text x="1568" y="34" text-anchor="end" class="small">Point-to-point assembly wiring · standard Raspberry Pi Pico · sheet 1/1</text>
+
+  <!-- MATRIX GROUPS -->
+  <g id="little-finger" transform="translate(30 62)">
+    <rect width="286" height="458" rx="8" class="zone"/>
+    <path d="M0 38 H286" stroke="#a9c0c5"/><rect width="286" height="38" rx="8" class="zone-head"/>
+    <text x="14" y="25" class="zone-title">Little finger</text>
+    <text x="272" y="25" text-anchor="end" class="net-text">COL_0 · GP0 · P1</text>
+    <path d="M24 62 V405" class="matrix-wire"/>
+    <g transform="translate(24 86)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW01</text><text x="87" y="-18" class="ref">D01</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_0</text><text x="242" y="4" class="small">KEY 1</text></g>
+    <g transform="translate(24 144)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW02</text><text x="87" y="-18" class="ref">D02</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_1</text><text x="242" y="4" class="small">KEY 2</text></g>
+    <g transform="translate(24 202)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW03</text><text x="87" y="-18" class="ref">D03</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_2</text><text x="242" y="4" class="small">KEY 3</text></g>
+    <g transform="translate(24 260)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW04</text><text x="87" y="-18" class="ref">D04</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_3</text><text x="242" y="4" class="small">KEY 4</text></g>
+    <g transform="translate(24 318)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW05</text><text x="87" y="-18" class="ref">D05</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_4</text><text x="242" y="4" class="small">KEY 5</text></g>
+    <g transform="translate(24 376)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW06</text><text x="87" y="-18" class="ref">D06</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_5</text><text x="242" y="4" class="small">OUTER</text></g>
+    <path d="M24 405 V421 H98" class="matrix-wire"/><path d="M98 411 H162 L172 421 L162 431 H98 Z" class="net-tag"/><text x="132" y="425" text-anchor="middle" class="net-text">COL_0</text>
+  </g>
+
+  <g id="ring-finger" transform="translate(324 62)">
+    <rect width="286" height="458" rx="8" class="zone"/>
+    <rect width="286" height="38" rx="8" class="zone-head"/><path d="M0 38 H286" stroke="#a9c0c5"/>
+    <text x="14" y="25" class="zone-title">Ring finger</text><text x="272" y="25" text-anchor="end" class="net-text">COL_1 · GP1 · P2</text>
+    <path d="M24 62 V405" class="matrix-wire"/>
+    <g transform="translate(24 86)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW07</text><text x="87" y="-18" class="ref">D07</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_0</text><text x="242" y="4" class="small">KEY 1</text></g>
+    <g transform="translate(24 144)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW08</text><text x="87" y="-18" class="ref">D08</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_1</text><text x="242" y="4" class="small">KEY 2</text></g>
+    <g transform="translate(24 202)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW09</text><text x="87" y="-18" class="ref">D09</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_2</text><text x="242" y="4" class="small">KEY 3</text></g>
+    <g transform="translate(24 260)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW10</text><text x="87" y="-18" class="ref">D10</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_3</text><text x="242" y="4" class="small">KEY 4</text></g>
+    <g transform="translate(24 318)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW11</text><text x="87" y="-18" class="ref">D11</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_4</text><text x="242" y="4" class="small">KEY 5</text></g>
+    <g transform="translate(24 376)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW12</text><text x="87" y="-18" class="ref">D12</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_5</text><text x="242" y="4" class="small">BASE BUTTON</text></g>
+    <path d="M24 405 V421 H98" class="matrix-wire"/><path d="M98 411 H162 L172 421 L162 431 H98 Z" class="net-tag"/><text x="132" y="425" text-anchor="middle" class="net-text">COL_1</text>
+  </g>
+
+  <g id="middle-finger" transform="translate(618 62)">
+    <rect width="286" height="458" rx="8" class="zone"/>
+    <rect width="286" height="38" rx="8" class="zone-head"/><path d="M0 38 H286" stroke="#a9c0c5"/>
+    <text x="14" y="25" class="zone-title">Middle finger</text><text x="272" y="25" text-anchor="end" class="net-text">COL_2 · GP2 · P4</text>
+    <path d="M24 62 V405" class="matrix-wire"/>
+    <g transform="translate(24 86)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW13</text><text x="87" y="-18" class="ref">D13</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_0</text><text x="242" y="4" class="small">KEY 1</text></g>
+    <g transform="translate(24 144)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW14</text><text x="87" y="-18" class="ref">D14</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_1</text><text x="242" y="4" class="small">KEY 2</text></g>
+    <g transform="translate(24 202)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW15</text><text x="87" y="-18" class="ref">D15</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_2</text><text x="242" y="4" class="small">KEY 3</text></g>
+    <g transform="translate(24 260)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW16</text><text x="87" y="-18" class="ref">D16</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_3</text><text x="242" y="4" class="small">KEY 4</text></g>
+    <g transform="translate(24 318)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW17</text><text x="87" y="-18" class="ref">D17</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_4</text><text x="242" y="4" class="small">KEY 5</text></g>
+    <g transform="translate(24 376)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW18</text><text x="87" y="-18" class="ref">D18</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_5</text><text x="242" y="4" class="small">THUMB SIDE</text></g>
+    <path d="M24 405 V421 H98" class="matrix-wire"/><path d="M98 411 H162 L172 421 L162 431 H98 Z" class="net-tag"/><text x="132" y="425" text-anchor="middle" class="net-text">COL_2</text>
+  </g>
+
+  <g id="index-finger" transform="translate(912 62)">
+    <rect width="286" height="458" rx="8" class="zone"/>
+    <rect width="286" height="38" rx="8" class="zone-head"/><path d="M0 38 H286" stroke="#a9c0c5"/>
+    <text x="14" y="25" class="zone-title">Index finger</text><text x="272" y="25" text-anchor="end" class="net-text">COL_3 · GP3 · P5</text>
+    <path d="M24 62 V405" class="matrix-wire"/>
+    <g transform="translate(24 86)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW19</text><text x="87" y="-18" class="ref">D19</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_0</text><text x="242" y="4" class="small">KEY 1</text></g>
+    <g transform="translate(24 144)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW20</text><text x="87" y="-18" class="ref">D20</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_1</text><text x="242" y="4" class="small">KEY 2</text></g>
+    <g transform="translate(24 202)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW21</text><text x="87" y="-18" class="ref">D21</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_2</text><text x="242" y="4" class="small">KEY 3</text></g>
+    <g transform="translate(24 260)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW22</text><text x="87" y="-18" class="ref">D22</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_3</text><text x="242" y="4" class="small">KEY 4</text></g>
+    <g transform="translate(24 318)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW23</text><text x="87" y="-18" class="ref">D23</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_4</text><text x="242" y="4" class="small">KEY 5</text></g>
+    <g transform="translate(24 376)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW24</text><text x="87" y="-18" class="ref">D24</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_5</text><text x="242" y="4" class="small">INNER</text></g>
+    <path d="M24 405 V421 H98" class="matrix-wire"/><path d="M98 411 H162 L172 421 L162 431 H98 Z" class="net-tag"/><text x="132" y="425" text-anchor="middle" class="net-text">COL_3</text>
+  </g>
+
+  <g id="thumb" transform="translate(1206 62)">
+    <rect width="364" height="458" rx="8" class="zone"/>
+    <rect width="364" height="38" rx="8" class="zone-head"/><path d="M0 38 H364" stroke="#a9c0c5"/>
+    <text x="14" y="25" class="zone-title">Thumb · 5-way button + joystick push</text><text x="350" y="25" text-anchor="end" class="net-text">COL_4 · GP4 · P6</text>
+    <path d="M24 62 V405" class="matrix-wire"/>
+    <g transform="translate(24 86)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW25</text><text x="87" y="-18" class="ref">D25</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_0</text><text x="242" y="4" class="small">CENTER</text></g>
+    <g transform="translate(24 144)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW26</text><text x="87" y="-18" class="ref">D26</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_1</text><text x="242" y="4" class="small">CONTACT A</text></g>
+    <g transform="translate(24 202)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW27</text><text x="87" y="-18" class="ref">D27</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_2</text><text x="242" y="4" class="small">CONTACT B</text></g>
+    <g transform="translate(24 260)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW28</text><text x="87" y="-18" class="ref">D28</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_3</text><text x="242" y="4" class="small">CONTACT C</text></g>
+    <g transform="translate(24 318)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW29</text><text x="87" y="-18" class="ref">D29</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_4</text><text x="242" y="4" class="small">CONTACT D</text></g>
+    <g transform="translate(24 376)"><use xlink:href="#switch-diode"/><text x="42" y="-18" class="ref">SW30</text><text x="87" y="-18" class="ref">D30</text><text x="87" y="22" class="value">1N4148</text><path d="M136 0 H158" class="matrix-wire"/><path d="M158 -10 H222 L232 0 L222 10 H158 Z" class="net-tag"/><text x="193" y="4" text-anchor="middle" class="net-text">ROW_5</text><text x="242" y="4" class="small">JOYSTICK BUTTON</text></g>
+    <path d="M24 405 V421 H98" class="matrix-wire"/><path d="M98 411 H162 L172 421 L162 431 H98 Z" class="net-tag"/><text x="132" y="425" text-anchor="middle" class="net-text">COL_4</text>
+    <text x="184" y="419" class="tiny">SW25–29: one 5-way switch</text>
+    <text x="184" y="431" class="tiny">SW30: one joystick button</text>
+  </g>
+
+  <!-- CONTROLLER -->
+  <g id="controller" transform="translate(30 548)">
+    <rect width="520" height="485" rx="8" class="zone"/>
+    <rect width="520" height="38" rx="8" class="zone-head"/><path d="M0 38 H520" stroke="#a9c0c5"/>
+    <text x="14" y="25" class="zone-title">Pico header wiring</text>
+
+    <rect x="168" y="62" width="220" height="388" rx="10" class="mcu"/>
+    <text x="278" y="86" text-anchor="middle" class="label">U1 · RASPBERRY PI PICO</text>
+    <text x="278" y="101" text-anchor="middle" class="small">RP2040 · USB connector at top</text>
+
+    <!-- Pico left bank -->
+    <g class="pin-small">
+      <text x="178" y="128">1  GP0</text><text x="178" y="146">2  GP1</text><text x="178" y="164">3  GND</text><text x="178" y="182">4  GP2</text><text x="178" y="200">5  GP3</text>
+      <text x="178" y="218">6  GP4</text><text x="178" y="236">7  GP5</text><text x="178" y="254">8  GND</text><text x="178" y="272">9  GP6</text><text x="178" y="290">10 GP7</text>
+      <text x="178" y="308">11 GP8</text><text x="178" y="326">12 GP9</text><text x="178" y="344">13 GND</text><text x="178" y="362">14 GP10</text><text x="178" y="380">15 GP11</text>
+      <text x="178" y="398">16 GP12</text><text x="178" y="416">17 GP13</text>
+    </g>
+    <!-- Pico right bank -->
+    <g class="pin-small" text-anchor="end">
+      <text x="378" y="128">GP16 21</text><text x="378" y="146">GP17 22</text><text x="378" y="164">GND 23</text><text x="378" y="182">GP18 24</text><text x="378" y="200">GP19 25</text>
+      <text x="378" y="218">GP20 26</text><text x="378" y="236">GP21 27</text><text x="378" y="254">GND 28</text><text x="378" y="272">GP22 29</text><text x="378" y="290">RUN 30</text>
+      <text x="378" y="308">GP26/ADC0 31</text><text x="378" y="326">GP27/ADC1 32</text><text x="378" y="344">AGND 33</text><text x="378" y="362">GP28/ADC2 34</text><text x="378" y="380">ADC_VREF 35</text>
+      <text x="378" y="398">3V3(OUT) 36</text>
+    </g>
+    <g class="pin-small"><text x="205" y="428">37 3V3_EN</text><text x="205" y="446">38 GND</text><text x="305" y="428">39 VSYS</text><text x="305" y="446">40 VBUS</text></g>
+
+    <!-- net flags at Pico pins -->
+    <g>
+      <path d="M168 124 H128" class="matrix-wire"/><path d="M58 114 H128 L138 124 L128 134 H58 Z" class="net-tag"/><text x="94" y="128" text-anchor="middle" class="net-text">COL_0</text>
+      <path d="M168 142 H128" class="matrix-wire"/><path d="M58 132 H128 L138 142 L128 152 H58 Z" class="net-tag"/><text x="94" y="146" text-anchor="middle" class="net-text">COL_1</text>
+      <path d="M168 178 H128" class="matrix-wire"/><path d="M58 168 H128 L138 178 L128 188 H58 Z" class="net-tag"/><text x="94" y="182" text-anchor="middle" class="net-text">COL_2</text>
+      <path d="M168 196 H128" class="matrix-wire"/><path d="M58 186 H128 L138 196 L128 206 H58 Z" class="net-tag"/><text x="94" y="200" text-anchor="middle" class="net-text">COL_3</text>
+      <path d="M168 214 H128" class="matrix-wire"/><path d="M58 204 H128 L138 214 L128 224 H58 Z" class="net-tag"/><text x="94" y="218" text-anchor="middle" class="net-text">COL_4</text>
+      <path d="M168 232 H128" class="matrix-wire"/><path d="M58 222 H128 L138 232 L128 242 H58 Z" class="net-tag"/><text x="94" y="236" text-anchor="middle" class="net-text">ROW_0</text>
+      <path d="M168 268 H128" class="matrix-wire"/><path d="M58 258 H128 L138 268 L128 278 H58 Z" class="net-tag"/><text x="94" y="272" text-anchor="middle" class="net-text">ROW_1</text>
+      <path d="M168 286 H128" class="matrix-wire"/><path d="M58 276 H128 L138 286 L128 296 H58 Z" class="net-tag"/><text x="94" y="290" text-anchor="middle" class="net-text">ROW_2</text>
+      <path d="M168 304 H128" class="matrix-wire"/><path d="M58 294 H128 L138 304 L128 314 H58 Z" class="net-tag"/><text x="94" y="308" text-anchor="middle" class="net-text">ROW_3</text>
+      <path d="M168 322 H128" class="matrix-wire"/><path d="M58 312 H128 L138 322 L128 332 H58 Z" class="net-tag"/><text x="94" y="326" text-anchor="middle" class="net-text">ROW_4</text>
+      <path d="M168 358 H128" class="matrix-wire"/><path d="M58 348 H128 L138 358 L128 368 H58 Z" class="net-tag"/><text x="94" y="362" text-anchor="middle" class="net-text">ROW_5</text>
+      <path d="M168 376 H128" class="signal-wire"/><path d="M50 366 H128 L138 376 L128 386 H50 Z" fill="#e6f5f7" stroke="#087d98"/><text x="91" y="380" text-anchor="middle" class="pin-small">LED_LEFT</text>
+      <path d="M168 394 H128" class="signal-wire"/><path d="M44 384 H128 L138 394 L128 404 H44 Z" fill="#e6f5f7" stroke="#087d98"/><text x="88" y="398" text-anchor="middle" class="pin-small">LED_RIGHT</text>
+    </g>
+    <g>
+      <path d="M388 214 H428" class="signal-wire"/><path d="M428 204 H490 L500 214 L490 224 H428 Z" fill="#e6f5f7" stroke="#087d98"/><text x="461" y="218" text-anchor="middle" class="pin-small">OLED_SDA</text>
+      <path d="M388 232 H428" class="signal-wire"/><path d="M428 222 H490 L500 232 L490 242 H428 Z" fill="#e6f5f7" stroke="#087d98"/><text x="461" y="236" text-anchor="middle" class="pin-small">OLED_SCL</text>
+      <path d="M388 304 H428" class="signal-wire"/><path d="M428 294 H490 L500 304 L490 314 H428 Z" fill="#e6f5f7" stroke="#087d98"/><text x="461" y="308" text-anchor="middle" class="pin-small">JOY_VRX</text>
+      <path d="M388 322 H428" class="signal-wire"/><path d="M428 312 H490 L500 322 L490 332 H428 Z" fill="#e6f5f7" stroke="#087d98"/><text x="461" y="326" text-anchor="middle" class="pin-small">JOY_VRY</text>
+      <path d="M388 340 H425 V355" class="ground-wire"/><use x="425" y="355" xlink:href="#ground"/>
+      <path d="M388 394 H425 V382" class="power-wire"/><use x="425" y="382" xlink:href="#power3v3"/>
+    </g>
+    <path d="M168 412 H145" class="signal-wire"/><path d="M145 402 H62 L52 412 L62 422 H145 Z" fill="#e6f5f7" stroke="#087d98"/><text x="100" y="416" text-anchor="middle" class="pin-small">WS2812_DATA</text>
+    <path d="M250 446 V458" class="ground-wire"/><use x="250" y="458" xlink:href="#ground"/>
+    <path d="M330 446 V464" class="power-wire"/><text x="322" y="479" text-anchor="end" class="tiny">VSYS P39</text>
+    <path d="M360 446 V464" class="power-wire"/><text x="368" y="479" class="tiny">VBUS P40</text>
+  </g>
+
+  <!-- PERIPHERALS -->
+  <g id="peripherals" transform="translate(562 548)">
+    <rect width="1008" height="485" rx="8" class="zone"/>
+    <rect width="1008" height="38" rx="8" class="zone-head"/><path d="M0 38 H1008" stroke="#a9c0c5"/>
+    <text x="14" y="25" class="zone-title">Peripheral and lighting wiring</text>
+
+    <!-- OLED -->
+    <rect x="18" y="58" width="270" height="176" rx="7" class="sheet"/>
+    <text x="32" y="79" class="label">J1 · SSD1306 OLED · 128×32</text>
+    <rect x="178" y="96" width="82" height="112" class="symbol"/>
+    <g class="pin-small"><text x="188" y="119">1 VCC</text><text x="188" y="143">2 GND</text><text x="188" y="167">3 SDA</text><text x="188" y="191">4 SCL</text></g>
+    <path d="M178 115 H132 V97" class="power-wire"/><use x="132" y="97" xlink:href="#power3v3"/>
+    <path d="M178 139 H116 V153" class="ground-wire"/><use x="116" y="153" xlink:href="#ground"/>
+    <path d="M178 163 H112" class="signal-wire"/><path d="M32 153 H112 L122 163 L112 173 H32 Z" fill="#e6f5f7" stroke="#087d98"/><text x="75" y="167" text-anchor="middle" class="pin-small">OLED_SDA</text>
+    <path d="M178 187 H112" class="signal-wire"/><path d="M32 177 H112 L122 187 L112 197 H32 Z" fill="#e6f5f7" stroke="#087d98"/><text x="75" y="191" text-anchor="middle" class="pin-small">OLED_SCL</text>
+    <text x="32" y="220" class="tiny">Pull-ups, if absent on module: 4.7 kΩ to +3V3.</text>
+
+    <!-- JOYSTICK -->
+    <rect x="300" y="58" width="330" height="176" rx="7" class="sheet"/>
+    <text x="314" y="79" class="label">J2 · Passive analog thumbstick</text>
+    <rect x="438" y="88" width="104" height="126" rx="5" class="symbol"/>
+    <g class="pin-small"><text x="448" y="107">VCC</text><text x="448" y="129">GND</text><text x="448" y="151">VRX</text><text x="448" y="173">VRY</text><text x="448" y="199">BTN-1</text><text x="500" y="199">BTN-2</text></g>
+    <path d="M438 103 H397 V88" class="power-wire"/><use x="397" y="88" xlink:href="#power3v3"/>
+    <path d="M438 125 H382 V139" class="ground-wire"/><use x="382" y="139" xlink:href="#ground"/>
+    <path d="M542 147 H550" class="signal-wire"/><path d="M550 137 H620 L630 147 L620 157 H550 Z" fill="#e6f5f7" stroke="#087d98"/><text x="586" y="151" text-anchor="middle" class="pin-small">JOY_VRX</text>
+    <path d="M542 169 H550" class="signal-wire"/><path d="M550 159 H620 L630 169 L620 179 H550 Z" fill="#e6f5f7" stroke="#087d98"/><text x="586" y="173" text-anchor="middle" class="pin-small">JOY_VRY</text>
+    <path d="M438 195 H397" class="matrix-wire"/><path d="M314 185 H397 L407 195 L397 205 H314 Z" class="net-tag"/><text x="354" y="199" text-anchor="middle" class="net-text">COL_4</text>
+    <path d="M542 195 H552 M552 186 V204 L568 195 Z M572 185 V205 M572 195 H584" class="matrix-wire"/><path d="M584 185 H620 L630 195 L620 205 H584 Z" class="net-tag"/><text x="606" y="199" text-anchor="middle" class="net-text">ROW_5</text>
+    <text x="314" y="224" class="tiny">One push button, two isolated terminals; D30 band/bar faces ROW_5.</text>
+
+    <!-- SIDE LEDS -->
+    <rect x="642" y="58" width="348" height="176" rx="7" class="sheet"/>
+    <text x="656" y="79" class="label">Active-low side indicators</text>
+    <use x="681" y="111" xlink:href="#power3v3"/><path d="M681 129 H725" class="power-wire"/>
+    <rect x="725" y="119" width="62" height="20" class="symbol"/><text x="756" y="133" text-anchor="middle" class="tiny">330Ω–1kΩ</text>
+    <path d="M787 129 H812 M812 117 V141 L831 129 Z M834 116 V142 M834 129 H862" class="signal-wire"/>
+    <path d="M862 119 H952 L962 129 L952 139 H862 Z" fill="#e6f5f7" stroke="#087d98"/><text x="908" y="133" text-anchor="middle" class="pin-small">LED_LEFT</text>
+    <text x="808" y="108" class="ref">D31</text>
+    <use x="681" y="169" xlink:href="#power3v3"/><path d="M681 187 H725" class="power-wire"/>
+    <rect x="725" y="177" width="62" height="20" class="symbol"/><text x="756" y="191" text-anchor="middle" class="tiny">330Ω–1kΩ</text>
+    <path d="M787 187 H812 M812 175 V199 L831 187 Z M834 174 V200 M834 187 H862" class="signal-wire"/>
+    <path d="M862 177 H952 L962 187 L952 197 H862 Z" fill="#e6f5f7" stroke="#087d98"/><text x="908" y="191" text-anchor="middle" class="pin-small">LED_RIGHT</text>
+    <text x="808" y="166" class="ref">D32</text>
+    <text x="656" y="220" class="tiny">GPIO low = LED on. Each bare LED requires its own resistor.</text>
+
+    <!-- WS2812 -->
+    <rect x="18" y="248" width="612" height="184" rx="7" class="sheet"/>
+    <text x="32" y="269" class="label">Addressable RGB data · choose one interface from the strip specification</text>
+    <path d="M32 313 H124" class="signal-wire"/><path d="M32 303 H124 L134 313 L124 323 H32 Z" fill="#e6f5f7" stroke="#087d98"/><text x="79" y="317" text-anchor="middle" class="pin-small">WS2812_DATA</text>
+    <rect x="154" y="286" width="160" height="58" rx="5" class="symbol"/><text x="234" y="308" text-anchor="middle" class="ref">OPTIONAL U2 · 74AHCT1G125</text><text x="234" y="327" text-anchor="middle" class="tiny">Fit if 3.3 V data is not supported</text>
+    <path d="M134 313 H154 M314 313 H338" class="signal-wire"/><rect x="338" y="303" width="54" height="20" class="symbol"/><text x="365" y="317" text-anchor="middle" class="tiny">330Ω</text>
+    <path d="M392 313 H442" class="signal-wire"/><rect x="442" y="283" width="150" height="64" rx="5" class="symbol"/><text x="517" y="306" text-anchor="middle" class="ref">J3 · LED STRIP</text><text x="517" y="325" text-anchor="middle" class="pin-small">DIN · +5V · GND</text>
+    <path d="M134 313 V358 H338" class="signal-wire" stroke-dasharray="7 5"/><text x="236" y="354" text-anchor="middle" class="tiny">DIRECT BYPASS when DIN accepts 3.3 V</text>
+    <use x="180" y="372" xlink:href="#power5v"/><path d="M180 390 H517 V347" class="power-wire"/>
+    <path d="M234 344 V394" class="ground-wire"/><use x="234" y="394" xlink:href="#ground"/>
+    <path d="M517 347 V394" class="ground-wire"/><use x="517" y="394" xlink:href="#ground"/>
+    <path d="M410 364 V405" class="power-wire"/><path d="M435 364 V405" class="ground-wire"/><rect x="404" y="370" width="37" height="29" class="symbol"/><text x="422" y="421" text-anchor="middle" class="tiny">470–1000 µF</text>
+    <text x="32" y="418" class="tiny">If DIN accepts 3.3 V: omit U2 and use GP13 → 330Ω → DIN. Otherwise fit U2. Always use common ground.</text>
+
+    <!-- POWER / SAFETY -->
+    <rect x="642" y="248" width="348" height="184" rx="7" class="danger"/>
+    <text x="816" y="275" text-anchor="middle" class="warning-text">RP2040 INPUTS ARE NOT 5 V TOLERANT</text>
+    <text x="660" y="301" class="small">• Power joystick and OLED from Pico 3V3(OUT), pin 36.</text>
+    <text x="660" y="325" class="small">• Keep GP0–GP28 and ADC signals within 0–3.3 V.</text>
+    <text x="660" y="349" class="small">• All supplies, Pico and peripherals require common ground.</text>
+    <text x="660" y="373" class="small">• Do not tie external +5 V to VBUS while USB is connected</text>
+    <text x="673" y="389" class="small">unless the power path is isolated or power-ORed.</text>
+    <text x="660" y="414" class="small">• Verify polarity, continuity and voltage before plugging in USB.</text>
+
+    <text x="18" y="464" class="small">Connect matching harness labels point-to-point. Conductors may use any colors; label both ends by signal.</text>
+    <text x="990" y="464" text-anchor="end" class="small">Detailed circuit notes, harness map and bring-up procedure: pages 2–3.</text>
+  </g>
+
+  <!-- TITLE BLOCK -->
+  <g transform="translate(1010 1055)">
+    <path d="M0 0 H568 M240 0 V33 M430 0 V33" stroke="#8aa4aa"/>
+    <text x="10" y="17" class="label">REPLICAZERON RP2040</text><text x="10" y="29" class="tiny">Assembly wiring diagram</text>
+    <text x="252" y="14" class="tiny">DRAWING</text><text x="252" y="27" class="pin-small">RP2040-WIRE-01</text>
+    <text x="442" y="14" class="tiny">REV / DATE</text><text x="442" y="27" class="pin-small">C · 2026-09-26</text>
+  </g>
+</svg>

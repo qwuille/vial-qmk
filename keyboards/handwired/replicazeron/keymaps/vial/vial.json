@@ -4,6 +4,25 @@
     "productId": "0x2305",
     "deviceId": 0,
     "lighting": "vialrgb",
+    "customKeycodes": [
+        {"name":"XInput A","title":"RP2040","shortName":"XI_A"},
+        {"name":"XInput B","title":"RP2040","shortName":"XI_B"},
+        {"name":"XInput X","title":"RP2040","shortName":"XI_X"},
+        {"name":"XInput Y","title":"RP2040","shortName":"XI_Y"},
+        {"name":"XInput Up","title":"RP2040","shortName":"XI_UP"},
+        {"name":"XInput Down","title":"RP2040","shortName":"XI_DN"},
+        {"name":"XInput Left","title":"RP2040","shortName":"XI_L"},
+        {"name":"XInput Right","title":"RP2040","shortName":"XI_R"},
+        {"name":"XInput LB","title":"RP2040","shortName":"XI_LB"},
+        {"name":"XInput RB","title":"RP2040","shortName":"XI_RB"},
+        {"name":"XInput LT","title":"RP2040","shortName":"XI_LT"},
+        {"name":"XInput RT","title":"RP2040","shortName":"XI_RT"},
+        {"name":"XInput Back","title":"RP2040","shortName":"XI_BK"},
+        {"name":"XInput Start","title":"RP2040","shortName":"XI_ST"},
+        {"name":"XInput LS","title":"RP2040","shortName":"XI_LS"},
+        {"name":"XInput RS","title":"RP2040","shortName":"XI_RS"},
+        {"name":"XInput Guide","title":"RP2040","shortName":"XI_G"}
+    ],
     "matrix": {
         "rows": 6,
         "cols": 5

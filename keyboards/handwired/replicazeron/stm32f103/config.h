@@ -16,6 +16,9 @@
 
 #pragma once
 
+/* Keep the standard and requested reactive effects within Blue Pill flash. */
+#define REPLICAZERON_COMPACT_RGB
+
 /* I2C Config */
 #define I2C_DRIVER I2CD2
 #define I2C1_SDA_PIN B11
