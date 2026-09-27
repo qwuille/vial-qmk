@@ -2159,9 +2159,12 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     }
 #endif
 
-    /* The layout key is firmware-owned so Vial remapping cannot remove either
-     * its tap action or its per-profile mode shortcut. */
-    if (record->event.key.row == REPLICAZERON_LAYOUT_KEY_ROW && record->event.key.col == REPLICAZERON_LAYOUT_KEY_COL) {
+    /* The layout key is firmware-owned on playable layers so Vial remapping
+     * cannot remove its tap or hold shortcuts.  Settings deliberately uses
+     * its stored mapping so every non-D-pad position remains assignable. */
+    if (controller_state.highestActiveLayer != _SETTINGS &&
+        record->event.key.row == REPLICAZERON_LAYOUT_KEY_ROW &&
+        record->event.key.col == REPLICAZERON_LAYOUT_KEY_COL) {
         if (record->event.pressed) {
             layout_key_timer = timer_read();
         } else if (timer_elapsed(layout_key_timer) >= REPLICAZERON_LAYOUT_KEY_HOLD_MS) {
@@ -2184,11 +2187,13 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
-    /* OLED navigation belongs to the physical D-pad while a menu is open, so
-     * Vial remapping cannot make a settings screen impossible to operate. */
-    if (controller_state.menuState != MENU_NONE) {
-        uint8_t row = record->event.key.row;
-        uint8_t col = record->event.key.col;
+    /* The D-pad is firmware-owned on Settings.  Its centre button also opens
+     * the OLED overlay from every playable layer; once open, all directions
+     * navigate it regardless of the current layer's ordinary bindings. */
+    uint8_t row = record->event.key.row;
+    uint8_t col = record->event.key.col;
+    bool dpad_select = row == REPLICAZERON_DPAD_SELECT_ROW && col == REPLICAZERON_DPAD_SELECT_COL;
+    if (controller_state.menuState != MENU_NONE || controller_state.highestActiveLayer == _SETTINGS || dpad_select) {
         if (row == REPLICAZERON_DPAD_RIGHT_ROW && col == REPLICAZERON_DPAD_RIGHT_COL) {
             keycode = KC_RIGHT;
         } else if (row == REPLICAZERON_DPAD_SELECT_ROW && col == REPLICAZERON_DPAD_SELECT_COL) {

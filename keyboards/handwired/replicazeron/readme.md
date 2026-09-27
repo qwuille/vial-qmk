@@ -289,16 +289,17 @@ builds can use the same firmware.
 
 ## Layout key
 
-The physical `lyr` key is owned by the firmware, independent of its Vial
-mapping. Tap it to advance to the next layout. Hold it for at least 500 ms to
-cycle the current layout through its available stick modes. Blue Pill Standard
+On the ten playable layers, the physical `lyr` key is owned by the firmware,
+independent of its Vial mapping. Tap it to advance to the next layout. Hold it
+for at least 500 ms to cycle the current layout through its available stick
+modes. Blue Pill Standard
 cycles between WASD and Faux analog; the DirectInput compatibility variant also
 offers Joystick. RP2040 offers all three plus XInput + keys.
 Each layout's selection is saved in EEPROM.
 
 The OLED `MODE` menu first asks which layout to edit. Its `Settings tools`
-entry controls only the Settings layer and cycles scroll/cursor, middle-drag
-pan, Shift+middle-drag orbit, and right-drag orbit. The same separate controls
+entry controls only the Settings layer and cycles scroll/cursor, middle-button
+drag, Shift+middle-button drag, and right-button drag. The same separate controls
 are available in the standalone WebHID Control Deck.
 
 The OLED `SCREEN` menu similarly chooses a playable layout and cycles its
@@ -357,9 +358,12 @@ until Settings is left; cursor speed also follows stick strength. Thumbstick
 movement counts as input activity and wakes the OLED. The default finger keys
 provide cut/copy/paste, undo/redo, save, find, browser back/forward, tabs,
 mouse buttons, and common navigation.
-Those finger keys remain remappable. The five-way D-pad is reserved for OLED
-navigation while the menu is open, and the physical layout key remains owned
-by firmware.
+Those finger keys remain remappable. On Settings, every position except the
+five-way D-pad is remappable, including the physical layout-key position. The
+five-way centre opens the OLED menu from any layer; while the overlay is open,
+all five directions are firmware-owned. Closing it restores the selected OLED
+design for the active playable layer. The physical layout key remains
+firmware-owned only on the ten playable layers.
 
 ## Persistent configuration
 
