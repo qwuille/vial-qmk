@@ -25,8 +25,11 @@
 #ifdef MOUSEKEY_ENABLE
 #    include "mousekey.h"
 #endif
-#ifdef JOYSTICK_ENABLE
+#ifdef THUMBSTICK_ENABLE
 #    include "analog.h"
+#endif
+#ifdef JOYSTICK_ENABLE
+#    include "joystick.h"
 #endif
 #ifdef RGB_MATRIX_ENABLE
 #    include "rgb_matrix.h"
@@ -171,6 +174,7 @@ static uint16_t settings_mouse_report_timer;
 #    define REPLICAZERON_MACRO_NAMES_OFFSET (REPLICAZERON_SIDE_LED_POLARITY_OFFSET + 1)
 #    define REPLICAZERON_MACRO_NAMES_SIZE (REPLICAZERON_MACRO_NAME_COUNT * REPLICAZERON_TITLE_LENGTH)
 #    define REPLICAZERON_SETTINGS_STICK_MODE_OFFSET (REPLICAZERON_MACRO_NAMES_OFFSET + REPLICAZERON_MACRO_NAMES_SIZE)
+#    define REPLICAZERON_SMOOTHING_LEVEL_SHIFT 2
 #    define REPLICAZERON_CORE_METADATA_SIZE 224
 #    define REPLICAZERON_MACRO_TIMING_SIZE (REPLICAZERON_MACRO_NAME_COUNT * sizeof(macro_timing_t))
 #    ifndef REPLICAZERON_METADATA_EEPROM_SIZE
@@ -194,8 +198,10 @@ static void release_wasd_keys(void) {
     unregister_code(KC_A);
     unregister_code(KC_S);
     unregister_code(KC_D);
-    unregister_code(KC_LSFT);
 #ifdef THUMBSTICK_ENABLE
+    if (wasd_state.speedKey != REPLICAZERON_FAUX_KEY_DISABLED) {
+        unregister_code(wasd_state.speedKey);
+    }
     init_wasd_state();
 #endif
 }
@@ -309,8 +315,21 @@ static void apply_layout_mode(uint8_t layout) {
 
     release_wasd_keys();
     controller_state.wasdMode = controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD ||
-                                controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD_SHIFT;
-    controller_state.wasdShiftMode = controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD_SHIFT;
+                                controller_state.layoutModes[layout] == JOYSTICK_MODE_FAUX_ANALOG;
+    controller_state.wasdFauxMode = controller_state.layoutModes[layout] == JOYSTICK_MODE_FAUX_ANALOG;
+#ifdef JOYSTICK_ENABLE
+    if (controller_state.layoutModes[layout] != JOYSTICK_MODE_ANALOG) {
+        bool had_pressed_button = false;
+        for (uint8_t i = 0; i < sizeof(joystick_state.buttons); ++i) {
+            had_pressed_button |= joystick_state.buttons[i] != 0;
+            joystick_state.buttons[i] = 0;
+        }
+        if (had_pressed_button) {
+            joystick_state.dirty = true;
+            joystick_flush();
+        }
+    }
+#endif
 #ifdef REPLICAZERON_XINPUT_ENABLE
     if (controller_state.layoutModes[layout] != JOYSTICK_MODE_XINPUT) {
         xinput_report.buttons = 0;
@@ -411,8 +430,14 @@ static void write_layout_modes(void) {
     eeconfig_update_kb(config);
 #ifdef VIA_ENABLE
     uint8_t stored_modes[REPLICAZERON_MODE_STORAGE_SIZE];
+    uint32_t faux_config = controller_state.fauxWalkKey |
+                           ((uint32_t)controller_state.fauxRunKey << 8) |
+                           ((uint32_t)controller_state.fauxWalkThreshold << 16) |
+                           ((uint32_t)controller_state.fauxRunThreshold << 23);
     for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
-        stored_modes[layout] = controller_state.layoutModes[layout] | (controller_state.layoutDisplayPresets[layout] << 2);
+        stored_modes[layout] = controller_state.layoutModes[layout] |
+                               (controller_state.layoutDisplayPresets[layout] << 2) |
+                               (((faux_config >> (layout * 3)) & 0x07) << 5);
     }
     write_metadata(stored_modes, REPLICAZERON_MODE_STORAGE_OFFSET, REPLICAZERON_MODE_STORAGE_SIZE);
     uint8_t stored_source_a = controller_state.sideLedSourceA | (REPLICAZERON_OLED_OFF_INDEX(controller_state.displayTimerConfig) << 4);
@@ -420,8 +445,9 @@ static void write_layout_modes(void) {
     write_metadata(&stored_source_a, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
     write_metadata(&stored_source_b, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
     write_metadata(&controller_state.sideLedsActiveLow, REPLICAZERON_SIDE_LED_POLARITY_OFFSET, 1);
-    write_metadata(&controller_state.settingsStickMode, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
-    static const uint8_t metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE] = {'R', '9'};
+    uint8_t stored_settings = controller_state.settingsStickMode | (controller_state.smoothingLevel << REPLICAZERON_SMOOTHING_LEVEL_SHIFT);
+    write_metadata(&stored_settings, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
+    static const uint8_t metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE] = {'R', 'A'};
     write_metadata(metadata_signature, REPLICAZERON_METADATA_SIGNATURE_OFFSET, sizeof(metadata_signature));
 #endif
 }
@@ -430,6 +456,11 @@ static void set_layout_mode(uint8_t layout, joystick_mode_t mode) {
     if (layout >= LAYOUT_COUNT || mode >= JOYSTICK_MODE_COUNT) {
         return;
     }
+#ifndef JOYSTICK_ENABLE
+    if (mode == JOYSTICK_MODE_ANALOG) {
+        return;
+    }
+#endif
     if (controller_state.layoutModes[layout] == mode) {
         return;
     }
@@ -488,27 +519,46 @@ static void load_layout_modes(void) {
 #ifdef VIA_ENABLE
     uint8_t stored_metadata_signature[REPLICAZERON_METADATA_SIGNATURE_SIZE];
     read_metadata(stored_metadata_signature, REPLICAZERON_METADATA_SIGNATURE_OFFSET, sizeof(stored_metadata_signature));
-    bool metadata_valid = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '9';
+    bool metadata_valid = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == 'A';
+    bool metadata_is_r9 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '9';
     bool metadata_is_r8 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '8';
     bool metadata_is_r7 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '7';
     bool metadata_is_r6 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '6';
     bool metadata_is_r5 = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '5';
     bool metadata_needs_keymap_migration = stored_metadata_signature[0] == 'R' && stored_metadata_signature[1] == '4';
-    if (metadata_valid || metadata_is_r8 || metadata_is_r7 || metadata_is_r6 || metadata_is_r5 || metadata_needs_keymap_migration) {
+    if (metadata_valid || metadata_is_r9 || metadata_is_r8 || metadata_is_r7 || metadata_is_r6 || metadata_is_r5 || metadata_needs_keymap_migration) {
         uint8_t stored_modes[REPLICAZERON_MODE_STORAGE_SIZE];
         read_metadata(stored_modes, REPLICAZERON_MODE_STORAGE_OFFSET, sizeof(stored_modes));
+        uint32_t faux_config = 0;
         modes_loaded = true;
         for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
-            controller_state.layoutModes[layout] = metadata_valid ? stored_modes[layout] & 0x03 : stored_modes[layout];
-            controller_state.layoutDisplayPresets[layout] = metadata_valid ? (stored_modes[layout] >> 2) & 0x07 : OLED_LAYOUT_INPUT;
+            faux_config |= (uint32_t)(stored_modes[layout] >> 5) << (layout * 3);
+            controller_state.layoutModes[layout] = (metadata_valid || metadata_is_r9) ? stored_modes[layout] & 0x03 : stored_modes[layout];
+            controller_state.layoutDisplayPresets[layout] = (metadata_valid || metadata_is_r9) ? (stored_modes[layout] >> 2) & 0x07 : OLED_LAYOUT_INPUT;
             if (controller_state.layoutModes[layout] >= JOYSTICK_MODE_COUNT) {
                 controller_state.layoutModes[layout] = JOYSTICK_MODE_ANALOG;
                 modes_loaded = false;
             }
+#ifndef JOYSTICK_ENABLE
+            if (controller_state.layoutModes[layout] == JOYSTICK_MODE_ANALOG) {
+                controller_state.layoutModes[layout] = JOYSTICK_MODE_WASD;
+                modes_need_write = true;
+            }
+#endif
             if (controller_state.layoutDisplayPresets[layout] >= OLED_LAYOUT_PRESET_COUNT) {
                 controller_state.layoutDisplayPresets[layout] = OLED_LAYOUT_INPUT;
                 modes_need_write = true;
             }
+        }
+        uint8_t stored_walk_threshold = (faux_config >> 16) & 0x7F;
+        uint8_t stored_run_threshold = (faux_config >> 23) & 0x7F;
+        if (stored_walk_threshold > 0 && stored_walk_threshold < 100 && stored_run_threshold > 0 && stored_run_threshold < 100) {
+            controller_state.fauxWalkKey = faux_config & 0xFF;
+            controller_state.fauxRunKey = (faux_config >> 8) & 0xFF;
+            controller_state.fauxWalkThreshold = stored_walk_threshold;
+            controller_state.fauxRunThreshold = stored_run_threshold;
+        } else {
+            modes_need_write = true;
         }
         if (!metadata_valid) {
             modes_need_write = true;
@@ -517,7 +567,7 @@ static void load_layout_modes(void) {
         uint8_t stored_source_b;
         read_metadata(&stored_source_a, REPLICAZERON_SIDE_LED_SOURCE_A_OFFSET, 1);
         read_metadata(&stored_source_b, REPLICAZERON_SIDE_LED_SOURCE_B_OFFSET, 1);
-        if (metadata_valid || metadata_is_r8) {
+        if (metadata_valid || metadata_is_r9 || metadata_is_r8) {
             controller_state.sideLedSourceA = stored_source_a & 0x07;
             controller_state.sideLedSourceB = stored_source_b & 0x07;
             controller_state.displayTimerConfig = REPLICAZERON_DISPLAY_TIMER_CONFIG(stored_source_a >> 4, stored_source_b >> 4);
@@ -540,23 +590,37 @@ static void load_layout_modes(void) {
         if (stored_polarity <= 1) {
             controller_state.sideLedsActiveLow = stored_polarity != 0;
         }
-        if (metadata_valid || metadata_is_r8 || metadata_is_r7 || metadata_is_r6) {
+        if (metadata_valid || metadata_is_r9 || metadata_is_r8 || metadata_is_r7 || metadata_is_r6) {
             load_macro_timings();
         } else {
             initialize_macro_timings();
             eeprom_update_byte((uint8_t *)(uintptr_t)DYNAMIC_KEYMAP_EEPROM_MAX_ADDR, 0);
             modes_need_write = true;
         }
-        if (metadata_valid || metadata_is_r8 || metadata_is_r7) {
-            read_metadata(&controller_state.settingsStickMode, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
+        if (metadata_valid || metadata_is_r9 || metadata_is_r8 || metadata_is_r7) {
+            uint8_t stored_settings;
+            read_metadata(&stored_settings, REPLICAZERON_SETTINGS_STICK_MODE_OFFSET, 1);
+            controller_state.settingsStickMode = metadata_valid ? stored_settings & 0x03 : stored_settings;
             if (controller_state.settingsStickMode >= SETTINGS_STICK_MODE_COUNT) {
                 controller_state.settingsStickMode = SETTINGS_STICK_MOUSE;
                 modes_need_write = true;
             }
+            if (metadata_valid) {
+                controller_state.smoothingLevel = (stored_settings >> REPLICAZERON_SMOOTHING_LEVEL_SHIFT) & 0x07;
+                if (controller_state.smoothingLevel > 4) {
+                    controller_state.smoothingLevel = _SMOOTHING_LEVEL;
+                    modes_need_write = true;
+                }
+            } else {
+                controller_state.smoothingLevel = _SMOOTHING_LEVEL;
+                modes_need_write = true;
+            }
         } else {
             controller_state.settingsStickMode = SETTINGS_STICK_MOUSE;
+            controller_state.smoothingLevel = _SMOOTHING_LEVEL;
             modes_need_write = true;
         }
+        controller_state.smoothingCandidate = controller_state.smoothingLevel;
     } else {
         uint8_t legacy_signature[2];
         eeprom_read_block(legacy_signature, (void *)(uintptr_t)REPLICAZERON_LEGACY_MODE_SIGNATURE_ADDR, sizeof(legacy_signature));
@@ -604,7 +668,7 @@ static void load_layout_modes(void) {
         eeprom_update_byte((uint8_t *)(uintptr_t)DYNAMIC_KEYMAP_EEPROM_MAX_ADDR, 0);
         modes_need_write = true;
     }
-    if (!metadata_valid && !metadata_is_r8 && !metadata_is_r7 && !metadata_is_r6 && !metadata_is_r5) {
+    if (!metadata_valid && !metadata_is_r9 && !metadata_is_r8 && !metadata_is_r7 && !metadata_is_r6 && !metadata_is_r5) {
         /* Layers 3 and 4 used to contain remnants of the old setup layer.
          * Settings is now a tool layer. Restore only those three layers once,
          * leaving every user layout outside them untouched. */
@@ -626,6 +690,14 @@ static void load_layout_modes(void) {
             controller_state.layoutModes[layout] = mode < JOYSTICK_MODE_COUNT ? mode : JOYSTICK_MODE_ANALOG;
         }
     }
+#ifndef JOYSTICK_ENABLE
+    for (uint8_t layout = 0; layout < LAYOUT_COUNT; ++layout) {
+        if (controller_state.layoutModes[layout] == JOYSTICK_MODE_ANALOG) {
+            controller_state.layoutModes[layout] = JOYSTICK_MODE_WASD;
+            modes_need_write = true;
+        }
+    }
+#endif
     uint8_t side_led_level = (config >> REPLICAZERON_MODE_CONFIG_SIDE_LED_SHIFT) & REPLICAZERON_MODE_CONFIG_SIDE_LED_MASK;
     controller_state.sideLedBrightness = (side_led_level == 0 ? 15 : MAX(2, side_led_level)) * 17;
     if (current_hardware_config) {
@@ -746,6 +818,21 @@ static void set_filter_strength(uint8_t strength) {
     write_user_config();
 }
 
+static void set_smoothing_level(uint8_t level) {
+    controller_state.smoothingLevel = MIN(level, 4);
+    controller_state.smoothingCandidate = controller_state.smoothingLevel;
+    write_layout_modes();
+}
+
+static void set_faux_analog_config(uint8_t walk_key, uint8_t run_key, uint8_t walk_threshold, uint8_t run_threshold) {
+    release_wasd_keys();
+    controller_state.fauxWalkKey = walk_key;
+    controller_state.fauxRunKey = run_key;
+    controller_state.fauxWalkThreshold = walk_threshold;
+    controller_state.fauxRunThreshold = run_threshold;
+    write_layout_modes();
+}
+
 static void set_side_leds_enabled(bool enabled) {
     controller_state.sideLedsEnabled = enabled;
     write_user_config();
@@ -852,8 +939,20 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_LAYOUT_DISPLAY_GET 0x15
 #    define REPLICAZERON_LAYOUT_DISPLAY_SET 0x16
 #    define REPLICAZERON_DEVICE_GET 0x17
+#    define REPLICAZERON_SMOOTHING_GET 0x18
+#    define REPLICAZERON_SMOOTHING_SET 0x19
+#    define REPLICAZERON_FAUX_ANALOG_GET 0x1A
+#    define REPLICAZERON_FAUX_ANALOG_SET 0x1B
 #    define REPLICAZERON_DEVICE_STM32F103 0x01
 #    define REPLICAZERON_DEVICE_RP2040 0x02
+#    define REPLICAZERON_IDENTITY_FORMAT 0x02
+#    define REPLICAZERON_VARIANT_STM32_STANDARD 0x01
+#    define REPLICAZERON_VARIANT_STM32_DIRECTINPUT 0x02
+#    define REPLICAZERON_VARIANT_RP2040_FULL 0x03
+#    define REPLICAZERON_CAP_HID_JOYSTICK (1U << 0)
+#    define REPLICAZERON_CAP_XINPUT (1U << 1)
+#    define REPLICAZERON_CAP_FAUX_ANALOG (1U << 2)
+#    define REPLICAZERON_CAP_SETTINGS_ANALOG (1U << 3)
 
 char replicazeron_titles[REPLICAZERON_TITLE_COUNT][REPLICAZERON_TITLE_LENGTH] = {
     "Casual       ",
@@ -921,12 +1020,29 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
     }
 
     if (data[1] == REPLICAZERON_DEVICE_GET) {
+        uint16_t capabilities = REPLICAZERON_CAP_FAUX_ANALOG | REPLICAZERON_CAP_SETTINGS_ANALOG;
 #ifdef RP2040
         data[3] = REPLICAZERON_DEVICE_RP2040;
+        data[5] = REPLICAZERON_VARIANT_RP2040_FULL;
 #else
         data[3] = REPLICAZERON_DEVICE_STM32F103;
+#    ifdef REPLICAZERON_STM32_DIRECTINPUT
+        data[5] = REPLICAZERON_VARIANT_STM32_DIRECTINPUT;
+#    else
+        data[5] = REPLICAZERON_VARIANT_STM32_STANDARD;
+#    endif
 #endif
-        data[4] = 1; /* Device-identification reply format version. */
+        data[4] = REPLICAZERON_IDENTITY_FORMAT;
+        data[6] = REPLICAZERON_HARDWARE_REVISION_MAJOR;
+        data[7] = REPLICAZERON_HARDWARE_REVISION_MINOR;
+#ifdef JOYSTICK_ENABLE
+        capabilities |= REPLICAZERON_CAP_HID_JOYSTICK;
+#endif
+#ifdef REPLICAZERON_XINPUT_ENABLE
+        capabilities |= REPLICAZERON_CAP_XINPUT;
+#endif
+        data[8] = capabilities & 0xFF;
+        data[9] = capabilities >> 8;
     } else if (data[1] == REPLICAZERON_CONFIG_HEARTBEAT) {
         data[3] = 1;
     } else if (data[1] == REPLICAZERON_SETTINGS_STICK_GET) {
@@ -1033,6 +1149,25 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             data[0] = id_unhandled;
         } else {
             set_filter_strength(data[3]);
+        }
+    } else if (data[1] == REPLICAZERON_SMOOTHING_GET) {
+        data[3] = controller_state.smoothingLevel;
+    } else if (data[1] == REPLICAZERON_SMOOTHING_SET) {
+        if (data[3] > 4) {
+            data[0] = id_unhandled;
+        } else {
+            set_smoothing_level(data[3]);
+        }
+    } else if (data[1] == REPLICAZERON_FAUX_ANALOG_GET) {
+        data[3] = controller_state.fauxWalkKey;
+        data[4] = controller_state.fauxRunKey;
+        data[5] = controller_state.fauxWalkThreshold;
+        data[6] = controller_state.fauxRunThreshold;
+    } else if (data[1] == REPLICAZERON_FAUX_ANALOG_SET) {
+        if (data[5] == 0 || data[5] >= 100 || data[6] == 0 || data[6] >= 100) {
+            data[0] = id_unhandled;
+        } else {
+            set_faux_analog_config(data[3], data[4], data[5], data[6]);
         }
     } else if (data[1] == REPLICAZERON_MODE_GET) {
         if (data[2] >= LAYOUT_COUNT) {
@@ -1171,13 +1306,15 @@ uint16_t dynamic_keymap_macro_get_auto_delay(uint8_t id) {
 }
 #endif
 
-#ifdef JOYSTICK_ENABLE
+#ifdef THUMBSTICK_ENABLE
+#    ifdef JOYSTICK_ENABLE
 joystick_config_t joystick_axes[JOYSTICK_AXIS_COUNT] = {
     JOYSTICK_AXIS_IN(ANALOG_AXIS_PIN_X , 0, 512, 1023),
     JOYSTICK_AXIS_IN(ANALOG_AXIS_PIN_Y , 0, 512, 1023)
 };
+#    endif
 
-static int16_t filtered_axes[JOYSTICK_AXIS_COUNT];
+static int16_t filtered_axes[2];
 
 static uint16_t axis_magnitude(int16_t value) {
     return value < 0 ? -value : value;
@@ -1187,6 +1324,7 @@ static uint16_t axis_magnitude(int16_t value) {
  * a centered stick could still expose a few percent of ADC noise to games and
  * input monitors. Remove that noise per axis, then linearly expand the
  * remaining range so motion begins at zero and still reaches full scale. */
+#    ifdef JOYSTICK_ENABLE
 static int16_t apply_report_deadzone(int16_t value) {
     uint16_t magnitude = axis_magnitude(value);
     uint16_t deadzone  = controller_state.deadzone;
@@ -1197,6 +1335,7 @@ static int16_t apply_report_deadzone(int16_t value) {
     uint16_t eased = ((uint32_t)(magnitude - deadzone) * 512) / (512 - deadzone);
     return value < 0 ? -(int16_t)eased : (int16_t)eased;
 }
+#    endif
 
 static void apply_axis_filter(int16_t *x, int16_t *y, uint8_t strength) {
     if (strength == 0) {
@@ -1229,23 +1368,31 @@ static void apply_axis_filter(int16_t *x, int16_t *y, uint8_t strength) {
     *minor_axis = *minor_axis < 0 ? -(int16_t)filtered_minor : (int16_t)filtered_minor;
 }
 
+static int16_t smooth_axis(int16_t current, int16_t sample) {
+    uint8_t level = controller_state.smoothingLevel;
+    if (level == 0 || current == sample) {
+        return sample;
+    }
+
+    int16_t delta = sample - current;
+    uint16_t step = MAX(1, axis_magnitude(delta) >> level);
+    return current + (delta < 0 ? -(int16_t)step : (int16_t)step);
+}
+
+static void sample_thumbstick_axes(void) {
+    int16_t x = (int16_t)analogReadPin(ANALOG_AXIS_PIN_X) - 512;
+    int16_t y = (int16_t)analogReadPin(ANALOG_AXIS_PIN_Y) - 512;
+
+    thumbstick_unfiltered_position = get_thumbstick_polar_position(x, y);
+    apply_axis_filter(&x, &y, controller_state.filterStrength);
+    filtered_axes[0] = smooth_axis(filtered_axes[0], x);
+    filtered_axes[1] = smooth_axis(filtered_axes[1], y);
+}
+
+#    ifdef JOYSTICK_ENABLE
 uint16_t joystick_axis_sample(uint8_t axis) {
-    static uint16_t filtered_samples[JOYSTICK_AXIS_COUNT] = {512, 512};
-
     if (axis == 0) {
-        int16_t x = (int16_t)analogReadPin(ANALOG_AXIS_PIN_X) - 512;
-        int16_t y = (int16_t)analogReadPin(ANALOG_AXIS_PIN_Y) - 512;
-
-#ifdef THUMBSTICK_ENABLE
-        thumbstick_unfiltered_position = get_thumbstick_polar_position(x, y);
-#endif
-        apply_axis_filter(&x, &y, controller_state.filterStrength);
-        /* A small fixed-point low-pass filter removes ADC jitter without any
-         * extra EEPROM state or floating-point code on the Blue Pill. */
-        filtered_axes[0] += (x - filtered_axes[0]) / 4;
-        filtered_axes[1] += (y - filtered_axes[1]) / 4;
-        filtered_samples[0] = (uint16_t)(apply_report_deadzone(filtered_axes[0]) + 512);
-        filtered_samples[1] = (uint16_t)(apply_report_deadzone(filtered_axes[1]) + 512);
+        sample_thumbstick_axes();
     }
 
     /* WASD profiles must not also expose a moving analog stick to games. On
@@ -1253,15 +1400,16 @@ uint16_t joystick_axis_sample(uint8_t axis) {
      * remains an analog joystick too, so host-side tools can see the actual
      * deflection strength. Drag-only Settings tools keep the axes centered. */
     if (controller_state.highestActiveLayer == _SETTINGS) {
-        return controller_state.settingsStickMode == SETTINGS_STICK_MOUSE ? filtered_samples[axis] : 512;
+        return controller_state.settingsStickMode == SETTINGS_STICK_MOUSE ? apply_report_deadzone(filtered_axes[axis]) + 512 : 512;
     }
 #ifdef REPLICAZERON_XINPUT_ENABLE
     if (controller_state.layoutModes[controller_state.activeLayout] == JOYSTICK_MODE_XINPUT) {
         return 512;
     }
 #endif
-    return controller_state.wasdMode ? 512 : filtered_samples[axis];
+    return controller_state.wasdMode ? 512 : apply_report_deadzone(filtered_axes[axis]) + 512;
 }
+#    endif
 #endif
 
 #ifdef REPLICAZERON_XINPUT_ENABLE
@@ -1272,51 +1420,63 @@ static bool xinput_mode_active(void) {
 
 static uint16_t xinput_button_mask(uint16_t keycode) {
     switch (keycode) {
-        case XI_UP: return 0x0001;
-        case XI_DOWN: return 0x0002;
-        case XI_LEFT: return 0x0004;
-        case XI_RIGHT: return 0x0008;
-        case XI_START: return 0x0010;
-        case XI_BACK: return 0x0020;
-        case XI_LS: return 0x0040;
-        case XI_RS: return 0x0080;
-        case XI_LB: return 0x0100;
-        case XI_RB: return 0x0200;
-        case XI_GUIDE: return 0x0400;
-        case XI_A: return 0x1000;
-        case XI_B: return 0x2000;
-        case XI_X: return 0x4000;
-        case XI_Y: return 0x8000;
+        case GP_BUTTON_5: return 0x0001;
+        case GP_BUTTON_6: return 0x0002;
+        case GP_BUTTON_7: return 0x0004;
+        case GP_BUTTON_8: return 0x0008;
+        case GP_BUTTON_14: return 0x0010;
+        case GP_BUTTON_13: return 0x0020;
+        case GP_BUTTON_15: return 0x0040;
+        case GP_BUTTON_16: return 0x0080;
+        case GP_BUTTON_9: return 0x0100;
+        case GP_BUTTON_10: return 0x0200;
+        case GP_BUTTON_17: return 0x0400;
+        case GP_BUTTON_1: return 0x1000;
+        case GP_BUTTON_2: return 0x2000;
+        case GP_BUTTON_3: return 0x4000;
+        case GP_BUTTON_4: return 0x8000;
         default: return 0;
     }
 }
+#endif
 
-static bool process_xinput_keycode(uint16_t keycode, bool pressed) {
-    if (keycode < XI_A || keycode > XI_GUIDE) {
+#ifdef JOYSTICK_ENABLE
+static bool process_gamepad_keycode(uint16_t keycode, bool pressed) {
+    if (keycode < GP_BUTTON_1 || keycode > GP_BUTTON_32) {
         return false;
     }
 
-    /* XInput assignments deliberately remain in EEPROM when a layout changes
-     * mode. Outside XInput they are consumed as inert keys, equivalent to
-     * KC_NO, so switching back restores the user's controller mapping. */
-    if (!xinput_mode_active()) {
+#ifdef REPLICAZERON_XINPUT_ENABLE
+    if (xinput_mode_active()) {
+        if (keycode == GP_BUTTON_11) {
+            xinput_report.left_trigger = pressed ? UINT8_MAX : 0;
+        } else if (keycode == GP_BUTTON_12) {
+            xinput_report.right_trigger = pressed ? UINT8_MAX : 0;
+        } else {
+            uint16_t mask = xinput_button_mask(keycode);
+            if (pressed) {
+                xinput_report.buttons |= mask;
+            } else {
+                xinput_report.buttons &= ~mask;
+            }
+        }
         return true;
     }
+#endif
 
-    if (keycode == XI_LT) {
-        xinput_report.left_trigger = pressed ? UINT8_MAX : 0;
-    } else if (keycode == XI_RT) {
-        xinput_report.right_trigger = pressed ? UINT8_MAX : 0;
-    } else {
-        uint16_t mask = xinput_button_mask(keycode);
-        if (pressed) {
-            xinput_report.buttons |= mask;
-        } else {
-            xinput_report.buttons &= ~mask;
-        }
+    /* Gamepad assignments remain stored on every layout. They emit DirectInput
+     * buttons only in Analog mode and are inert in both keyboard-emulation
+     * modes, so changing a layout mode never destroys its Vial mapping. */
+    if (controller_state.highestActiveLayer < LAYOUT_COUNT &&
+        controller_state.layoutModes[controller_state.activeLayout] == JOYSTICK_MODE_ANALOG) {
+        uint8_t button = keycode - GP_BUTTON_1;
+        pressed ? register_joystick_button(button) : unregister_joystick_button(button);
     }
     return true;
 }
+#endif
+
+#ifdef REPLICAZERON_XINPUT_ENABLE
 
 static void update_xinput_report(void) {
     if (timer_elapsed(xinput_report_timer) < 4) {
@@ -1324,8 +1484,8 @@ static void update_xinput_report(void) {
     }
     xinput_report_timer = timer_read();
     if (xinput_mode_active()) {
-        xinput_report.left_x = (int16_t)(filtered_axes[0] * 64);
-        xinput_report.left_y = (int16_t)(-filtered_axes[1] * 64);
+        xinput_report.left_x = (int16_t)(apply_report_deadzone(filtered_axes[0]) * 64);
+        xinput_report.left_y = (int16_t)(-apply_report_deadzone(filtered_axes[1]) * 64);
     } else {
         xinput_report.left_x = 0;
         xinput_report.left_y = 0;
@@ -1410,6 +1570,9 @@ void housekeeping_task_kb(void) {
         reset_combo_armed = false;
     }
 
+#    ifndef JOYSTICK_ENABLE
+    sample_thumbstick_axes();
+#    endif
     update_thumbstick_position(filtered_axes[0], filtered_axes[1]);
 #    ifdef REPLICAZERON_XINPUT_ENABLE
     update_xinput_report();
@@ -1450,7 +1613,11 @@ static void menu_open(void) {
 
 static void cycle_layout_mode(uint8_t layout) {
     if (layout < LAYOUT_COUNT) {
+#ifndef JOYSTICK_ENABLE
+        set_layout_mode(layout, controller_state.layoutModes[layout] == JOYSTICK_MODE_WASD ? JOYSTICK_MODE_FAUX_ANALOG : JOYSTICK_MODE_WASD);
+#else
         set_layout_mode(layout, (controller_state.layoutModes[layout] + 1) % JOYSTICK_MODE_COUNT);
+#endif
     } else if (layout == LAYOUT_COUNT) {
         set_settings_stick_mode((controller_state.settingsStickMode + 1) % SETTINGS_STICK_MODE_COUNT);
     }
@@ -1841,9 +2008,12 @@ static void menu_select(void) {
         case MENU_CALIB:
             if (controller_state.menuSelection == 0) {
                 controller_state.menuState = MENU_CALIB_DEADZONE;
-            } else {
+            } else if (controller_state.menuSelection == 1) {
                 controller_state.filterCandidate = controller_state.filterStrength;
                 controller_state.menuState = MENU_CALIB_FILTER;
+            } else {
+                controller_state.smoothingCandidate = controller_state.smoothingLevel;
+                controller_state.menuState = MENU_CALIB_SMOOTHING;
             }
             break;
         default:
@@ -2041,8 +2211,8 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         keycode = SETTINGS_MOUSE_TOGGLE;
     }
 
-#ifdef REPLICAZERON_XINPUT_ENABLE
-    if (process_xinput_keycode(keycode, record->event.pressed)) {
+#ifdef JOYSTICK_ENABLE
+    if (process_gamepad_keycode(keycode, record->event.pressed)) {
         return false;
     }
 #endif
@@ -2095,6 +2265,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             set_filter_strength(controller_state.filterCandidate);
             controller_state.menuState = MENU_CALIB;
             controller_state.menuSelection = 1;
+        } else if (controller_state.menuState == MENU_CALIB_SMOOTHING) {
+            set_smoothing_level(controller_state.smoothingCandidate);
+            controller_state.menuState = MENU_CALIB;
+            controller_state.menuSelection = 2;
         } else {
             menu_select();
         }
@@ -2130,6 +2304,8 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 #endif
                 } else if (controller_state.menuState == MENU_CALIB_FILTER) {
                     controller_state.filterCandidate = MIN(100, controller_state.filterCandidate + 5);
+                } else if (controller_state.menuState == MENU_CALIB_SMOOTHING) {
+                    controller_state.smoothingCandidate = MIN(4, controller_state.smoothingCandidate + 1);
                 } else {
                     menu_move(-1);
                 }
@@ -2146,6 +2322,8 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 #endif
                 } else if (controller_state.menuState == MENU_CALIB_FILTER) {
                     controller_state.filterCandidate = controller_state.filterCandidate >= 5 ? controller_state.filterCandidate - 5 : 0;
+                } else if (controller_state.menuState == MENU_CALIB_SMOOTHING) {
+                    controller_state.smoothingCandidate = controller_state.smoothingCandidate > 0 ? controller_state.smoothingCandidate - 1 : 0;
                 } else {
                     menu_move(1);
                 }
@@ -2215,6 +2393,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     controller_state.filterCandidate = controller_state.filterStrength;
                     controller_state.menuState = MENU_CALIB;
                     controller_state.menuSelection = 1;
+                } else if (controller_state.menuState == MENU_CALIB_SMOOTHING) {
+                    controller_state.smoothingCandidate = controller_state.smoothingLevel;
+                    controller_state.menuState = MENU_CALIB;
+                    controller_state.menuSelection = 2;
                 } else {
                     menu_close();
                 }
@@ -2266,6 +2448,10 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                     set_filter_strength(controller_state.filterCandidate);
                     controller_state.menuState = MENU_CALIB;
                     controller_state.menuSelection = 1;
+                } else if (controller_state.menuState == MENU_CALIB_SMOOTHING) {
+                    set_smoothing_level(controller_state.smoothingCandidate);
+                    controller_state.menuState = MENU_CALIB;
+                    controller_state.menuSelection = 2;
                 } else {
                     menu_select();
                 }

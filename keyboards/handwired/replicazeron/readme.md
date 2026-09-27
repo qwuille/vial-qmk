@@ -45,10 +45,11 @@ disabled. On the STM32F103 build, NKRO and several additional QMK conveniences
 are also disabled to leave flash space for the Replicazeron OLED, WebHID,
 macro, joystick, lighting, and host-traffic indicator features. The standard
 Blue Pill keyboard report still supports six simultaneous keyboard keys;
-joystick and mouse reports remain separate. Tap Dance, ordinary remapping,
-layer keys, the Vial macro engine, and all 11 layout slots remain available.
-The RP2040 build restores NKRO, Repeat Key, Caps Word, Magic keycodes, Layer
-Lock, Grave Escape, and Space Cadet.
+joystick and mouse reports remain separate. Ordinary remapping, layer keys,
+the Vial macro engine, and all 11 layout slots remain available. Tap Dance is
+disabled on the Blue Pill to provide enough flash for adjustable analog
+smoothing. The RP2040 build restores Tap Dance, NKRO, Repeat Key, Caps Word,
+Magic keycodes, Layer Lock, Grave Escape, and Space Cadet.
 
 OpenRGB communicates through VialRGB on the existing 32-byte Vial Raw HID
 interface. There is no bridge program and no second OpenRGB HID interface, so
@@ -252,11 +253,12 @@ runtime switch.
   interface.
 * A persistent Firmware/OpenRGB ownership setting on the OLED and WebHID page.
 * Ten independently remappable layouts plus an editable Settings tool layer.
-* Per-layout Analog, WASD, and WASD + Shift thumbstick modes, plus an
-  RP2040-only XInput + keys mode.
+* Per-layout WASD and configurable faux-analog keyboard modes on both targets,
+  plus Analog and XInput + keys modes on RP2040.
 * Five independently selectable OLED designs for every playable layout: Input
   monitor, Macro focus, Game status, Combined, and Minimal.
-* Editable OLED layout titles, names for Macro 0-15, deadzone, and axis filtering.
+* Editable OLED layout titles, names for Macro 0-15, deadzone, axis filtering,
+  and analog smoothing.
 * Persistent OLED shutdown and sleeping-logo interval controls without reducing
   Vial's macro buffer.
 * Vial-compatible recorded macro sequences plus optional firmware-side fixed
@@ -271,9 +273,14 @@ it are held at the exact center to eliminate small ADC drift. Values outside it
 are linearly rescaled, so movement begins smoothly at zero and can still reach
 the full axis range. The same setting is available in WebHID and under
 **Calibration → Deadzone** on the OLED; no additional EEPROM field is needed.
-The reported axes also use lightweight fixed-point smoothing to reduce ADC
-jitter without consuming another setting or EEPROM field. **Axis filter** is a
-separate directional aid that suppresses unintended diagonal movement.
+The reported axes also use persistent, adjustable fixed-point smoothing to
+reduce ADC jitter on sticks of varying quality. Off, Light, Balanced, Strong,
+and Maximum trade progressively steadier output for additional response delay;
+Balanced preserves the previous fixed smoothing behavior. The same setting is
+available in WebHID and under **Calibration → Smoothing** on the OLED. **Axis
+filter** remains a separate directional aid that suppresses unintended
+diagonal movement. RP2040 XInput now receives the configured deadzone as well
+as smoothing instead of forwarding center noise around the HID path.
 
 The side-indicator brightness range starts at 34/255. Lower values do not
 retain enough PWM resolution to show useful stick-strength variation. Wiring
@@ -284,9 +291,10 @@ builds can use the same firmware.
 
 The physical `lyr` key is owned by the firmware, independent of its Vial
 mapping. Tap it to advance to the next layout. Hold it for at least 500 ms to
-cycle the current layout through its available stick modes. RP2040 adds XInput
-+ keys after Joystick, WASD, and WASD + Shift; Blue Pill keeps the original
-three-mode cycle. Each layout's selection is saved in EEPROM.
+cycle the current layout through its available stick modes. Blue Pill Standard
+cycles between WASD and Faux analog; the DirectInput compatibility variant also
+offers Joystick. RP2040 offers all three plus XInput + keys.
+Each layout's selection is saved in EEPROM.
 
 The OLED `MODE` menu first asks which layout to edit. Its `Settings tools`
 entry controls only the Settings layer and cycles scroll/cursor, middle-drag
@@ -301,22 +309,48 @@ status together; this replaces the less useful RGB-status concept. Minimal
 keeps only the layout title and input mode. The WebHID layout rows provide CSS
 previews for both the selected thumbstick mode and OLED design.
 
-Joystick profiles report the two analog HID axes. WASD and WASD + Shift
-profiles center those HID axes and translate the physical stick into keyboard
-input instead, avoiding simultaneous joystick movement in games that listen to
-both device types.
+Faux analog remains entirely on the keyboard interface. A disabled Walk and
+Run binding behaves like ordinary WASD. Defining only Walk produces Walk/Pace;
+defining only Run produces Pace/Run; defining both produces Walk/Pace/Run.
+WebHID selects each key and both stick-strength transition points. Games must
+provide suitable keyboard bindings for the chosen Walk and Run keys.
+
+The STM32 USB HID/DirectInput joystick-only gaming mode was removed from the
+recommended Standard variant
+after testing showed that combining its gamepad reports with the controller's
+normal keyboard input made games repeatedly switch between gamepad and keyboard
+HUDs. That transition was not smooth and could cause visible hesitation while
+playing. STM32 now exposes keyboard gaming modes only, while retaining the
+physical stick's internal analog sampling, deadzone, filtering, smoothing,
+Settings-layer proportional scroll/cursor control, and CAD drag/orbit tools.
+Existing STM32 Joystick layouts migrate to WASD after this update.
+
+A separately published DirectInput compatibility variant restores the HID
+joystick and all 32 Vial-bindable gamepad buttons without removing any current
+feature. Build it by adding `-e REPLICAZERON_STM32_DIRECTINPUT=yes` to the STM32
+QMK command. It leaves only 80 application-flash bytes free in the verified
+build, so it
+is feature-frozen: maintenance corrections remain possible, but new features
+target Standard and RP2040. WebHID identifies the running variant and hardware
+revision, defaults to its matching update channel, and offers an explicit STM32
+variant toggle before flashing.
+
+Joystick profiles on STM32 DirectInput and RP2040 report two HID axes and 32
+bindable DirectInput buttons. RP2040's XInput mode is the recommended controller path for games that
+support simultaneous keyboard and controller input.
 
 The RP2040-only **XInput + keys** mode sends the thumbstick as the XInput left
-stick and centres the normal HID joystick report. Vial's User tab exposes A,
-B, X, Y, D-pad, bumpers, triggers, Back, Start, stick-click, and Guide
-assignments directly on each existing layout; no extra layer is used. Ordinary
-QMK keycodes on the same layout remain keyboard keys, allowing either pure
-XInput assignments or an intentional hybrid. XInput assignments are inert in
-the three regular modes but remain stored, so changing modes never erases them.
+stick and centres the normal HID joystick report. Vial's User tab labels
+Gamepad Buttons 1-17 with A, B, X, Y, D-pad, bumpers, triggers, Back, Start,
+stick-click, and Guide meanings; no extra layer is used. The same assignments
+emit numbered DirectInput buttons in Analog mode. Ordinary QMK keycodes on the
+same layout remain keyboard keys, allowing either pure controller assignments
+or an intentional hybrid. Gamepad assignments are inert in the two keyboard
+emulation modes but remain stored, so changing modes never erases them.
 
-On Settings, the thumbstick scrolls horizontally and vertically by default and
-continues reporting its analog game-controller axes so host tools can see the
-actual stick strength. Scroll rate follows a gentle strength curve for precise
+On Settings, the thumbstick scrolls horizontally and vertically by default.
+DirectInput and RP2040 Joystick builds also report their game-controller axes;
+Standard keeps the same analog sampling internal. Scroll rate follows a gentle strength curve for precise
 movement near center without excessive full-deflection scrolling. The default
 Settings mouse-toggle key switches between scrolling and regular cursor movement
 until Settings is left; cursor speed also follows stick strength. Thumbstick

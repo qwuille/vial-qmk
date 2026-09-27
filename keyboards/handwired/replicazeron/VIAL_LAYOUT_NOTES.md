@@ -15,10 +15,30 @@
   - The standalone [WebHID Control Deck](https://github.com/qwuille/replicazeron_webhid) can read and write RGB enabled state, mode, animation, brightness, speed, and hue.
   - Calibration menu: Deadzone displays the live unfiltered stick distance on a center-to-outer gauge and saves on the next gamepad key press.
   - Axis Filter suppresses a small secondary axis relative to the dominant axis. Up/Down adjusts its persistent strength from 0 to 100%, center saves, and Left cancels.
-  - The WebHID Control Deck can also read and write axis-filter strength and import/export settings as JSON.
-  - Mode menu: choose one of the ten playable layouts to cycle Joystick, WASD,
-    and WASD-plus-Shift, or choose Settings tools to cycle its separate
-    scroll/pan/orbit behavior.
+  - Smoothing provides five persistent levels from Off through Maximum. The
+    default Balanced level retains the previous low-pass behavior; stronger
+    levels trade some response time for greater resistance to noisy sticks.
+  - The WebHID Control Deck can read and write axis-filter strength and
+    smoothing, and import/export both settings as JSON.
+  - RP2040's HID Game Pad report exposes two analog axes and 32 buttons.
+    Vial's **User** palette provides **Gamepad Button 1** through **Gamepad
+    Button 32** for DirectInput assignments while other positions remain
+    ordinary keyboard bindings. STM32 Standard deliberately exposes no USB gamepad: its
+    former HID/DirectInput joystick gaming mode caused games to switch
+    repeatedly and unsmoothly between gamepad and keyboard HUD/input prompts.
+    Removing that USB report does not remove the internal analog sampling used
+    for proportional scrolling, cursor control, or CAD pan/orbit.
+  - The separately released STM32 DirectInput compatibility build restores the
+    HID joystick and this gamepad palette. It retains the present feature set
+    but is feature-frozen because only 80 application-flash bytes remain in
+    the verified build.
+  - On RP2040, Gamepad Buttons 1-17 are labelled with their additional XInput
+    meanings. A saved binding emits a numbered DirectInput button in Analog
+    mode or its labelled Xbox control in XInput mode.
+  - Mode menu: STM32 Standard layouts cycle WASD and Faux analog. STM32
+    DirectInput adds Joystick; RP2040 also adds XInput + keys. Faux analog uses configurable Walk and Run keys and
+    strength thresholds without exposing a gamepad. Settings tools retain
+    their separate proportional scroll/pan/orbit behavior on both targets.
   - Screen menu: choose one of the ten playable layouts and cycle Input
     monitor, Macro focus, Game status, Combined, or Minimal OLED designs.
     Combined uses its fourth row for the last macro instead of RGB status.
@@ -37,6 +57,9 @@
     avoids overlapping Layout 0 while keeping the existing keymap start address.
   - Packs each layout's OLED design into unused bits of its existing joystick
     mode byte, so the feature consumes no Vial macro-buffer space.
+  - Packs smoothing into unused bits of the Settings-stick byte, preserving
+    the existing EEPROM and Vial macro capacity while migrating older `R9`
+    metadata to the current `RA` format.
   - Migrates the legacy `J2`/`J3` metadata and restores its seven overwritten
     Layout 0 positions from compiled defaults.
   - Seeds default titles:

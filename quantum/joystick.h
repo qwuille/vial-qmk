@@ -50,6 +50,14 @@
 #    error JOYSTICK_AXIS_RESOLUTION must be between 8 and 16
 #endif
 
+/* Generic Desktop usage for the top-level HID application collection.
+ * 0x04 is Joystick and 0x05 is Game Pad. */
+#ifndef JOYSTICK_HID_USAGE
+#    define JOYSTICK_HID_USAGE 0x04
+#elif JOYSTICK_HID_USAGE != 0x04 && JOYSTICK_HID_USAGE != 0x05
+#    error JOYSTICK_HID_USAGE must be Joystick (0x04) or Game Pad (0x05)
+#endif
+
 #define JOYSTICK_MAX_VALUE ((1L << (JOYSTICK_AXIS_RESOLUTION - 1)) - 1)
 
 #define JOYSTICK_HAT_CENTER -1

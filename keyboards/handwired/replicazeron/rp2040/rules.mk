@@ -1,1 +1,2 @@
 WS2812_DRIVER = vendor
+JOYSTICK_ENABLE = yes

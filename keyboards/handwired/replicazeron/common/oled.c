@@ -337,7 +337,8 @@ static void draw_calibration_menu(uint8_t selection) {
     oled_write_ln_P(PSTR("Deadzone"), false);
     oled_write_P(selection == 1 ? PSTR(">") : PSTR(" "), false);
     oled_write_ln_P(PSTR("Axis Filter"), false);
-    oled_write_ln_P(PSTR("Left: Back"), false);
+    oled_write_P(selection == 2 ? PSTR(">") : PSTR(" "), false);
+    oled_write_ln_P(PSTR("Smoothing"), false);
 }
 
 static void draw_display_menu(controller_state_t controller_state) {
@@ -456,6 +457,15 @@ static void draw_filter_calibration(uint8_t strength) {
     oled_write_ln_P(PSTR("Menu Save Left Back"), false);
 }
 
+static void draw_smoothing_calibration(uint8_t level) {
+    static const char *const labels[] = {"Off", "Light", "Balanced", "Strong", "Maximum"};
+    oled_write_ln_P(PSTR("STICK SMOOTHING"), false);
+    oled_write_P(PSTR("Level: "), false);
+    oled_write_ln(labels[MIN(level, 4)], false);
+    draw_horizontal_gauge(1 + ((uint16_t)MIN(level, 4) * 17) / 4);
+    oled_write_ln_P(PSTR("Up/Dn Menu: Save"), false);
+}
+
 static void draw_layout_browser(controller_state_t controller_state) {
     oled_write_ln_P(PSTR("LAYOUT"), false);
     oled_write_P(PSTR("> "), false);
@@ -472,8 +482,8 @@ static void draw_mode_value(joystick_mode_t mode) {
             oled_write_ln_P(PSTR("XInput + keys"), false);
             break;
 #endif
-        case JOYSTICK_MODE_WASD_SHIFT:
-            oled_write_ln_P(PSTR("WASD + Shift"), false);
+        case JOYSTICK_MODE_FAUX_ANALOG:
+            oled_write_ln_P(PSTR("Faux analog"), false);
             break;
         case JOYSTICK_MODE_WASD:
             oled_write_ln_P(PSTR("WASD"), false);
@@ -560,9 +570,9 @@ void draw_mode(controller_state_t controller_state) {
     if (controller_state.highestActiveLayer == _SETTINGS) {
         oled_write_P(PSTR("Tool: "), false);
         draw_settings_stick_value(controller_state.settingsStickMode);
-    } else if (controller_state.wasdShiftMode) {
+    } else if (controller_state.wasdFauxMode) {
         oled_write_P(PSTR("Mode: "), false);
-        oled_write_ln_P(PSTR("WASD + Shift"), false);
+        oled_write_ln_P(PSTR("Faux analog"), false);
     } else if (controller_state.wasdMode) {
         oled_write_P(PSTR("Mode: "), false);
         oled_write_ln_P(PSTR("WASD"), false);
@@ -581,9 +591,6 @@ void draw_wasd_key(wasd_state_t wasd_state) {
         if (keystates[i]) {
             char k = keys[i] ;
             //bitshift char to upper case
-            if (wasd_state.shift) {
-                k &= ~shiftbits;
-            }
             oled_write_char(k, false);
         } else {
             oled_write_P(PSTR(" "), false);
@@ -769,6 +776,9 @@ void draw_oled(controller_state_t controller_state) {
                 return;
             case MENU_CALIB_FILTER:
                 draw_filter_calibration(controller_state.filterCandidate);
+                return;
+            case MENU_CALIB_SMOOTHING:
+                draw_smoothing_calibration(controller_state.smoothingCandidate);
                 return;
             case MENU_DISPLAY:
                 draw_display_menu(controller_state);

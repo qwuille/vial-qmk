@@ -616,7 +616,7 @@ const PROGMEM uchar shared_hid_report[] = {
 #ifdef JOYSTICK_ENABLE
     // Joystick report descriptor
     0x05, 0x01,               // Usage Page (Generic Desktop)
-    0x09, 0x04,               // Usage (Joystick)
+    0x09, JOYSTICK_HID_USAGE, // Usage (Joystick or Game Pad)
     0xA1, 0x01,               // Collection (Application)
     0x85, REPORT_ID_JOYSTICK, //   Report ID
     0xA1, 0x00,               //   Collection (Physical)

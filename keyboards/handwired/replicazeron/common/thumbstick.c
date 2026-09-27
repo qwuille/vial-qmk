@@ -23,7 +23,7 @@
 void init_wasd_state (void) {
     wasd_state.w = wasd_state.a = wasd_state.s = wasd_state.d = false;
     last_wasd_state = wasd_state;
-    wasd_state.shift = false;
+    wasd_state.speedKey = REPLICAZERON_FAUX_KEY_DISABLED;
 }
 
 thumbstick_polar_position_t get_thumbstick_polar_position(int16_t x, int16_t y) {
@@ -61,6 +61,19 @@ void update_keycode(uint16_t keycode, bool keystate, bool last_keystate) {
     }
 }
 
+static void update_speed_key(uint8_t keycode) {
+    if (wasd_state.speedKey == keycode) {
+        return;
+    }
+    if (wasd_state.speedKey != REPLICAZERON_FAUX_KEY_DISABLED) {
+        unregister_code(wasd_state.speedKey);
+    }
+    wasd_state.speedKey = keycode;
+    if (keycode != REPLICAZERON_FAUX_KEY_DISABLED) {
+        register_code(keycode);
+    }
+}
+
 void thumbstick(controller_state_t controller_state, int16_t x, int16_t y) {
     xPos = x;
     yPos = y;
@@ -87,6 +100,7 @@ void thumbstick(controller_state_t controller_state, int16_t x, int16_t y) {
         }
     } else {
         //reset WASD state when in _DEADZONE
+        update_speed_key(REPLICAZERON_FAUX_KEY_DISABLED);
         init_wasd_state();
     }
 
@@ -101,15 +115,21 @@ void thumbstick(controller_state_t controller_state, int16_t x, int16_t y) {
 
     last_wasd_state = wasd_state ;
 
-    // handle WASD-Shift mode
-    if (controller_state.wasdShiftMode) {
-        bool Shifted = thumbstick_polar_position.distance > _SHIFTZONE;
-        if (!wasd_state.shift && Shifted) {
-            register_code(KC_LSFT);
-            wasd_state.shift = true;
-        } else if (wasd_state.shift && !Shifted) {
-            unregister_code(KC_LSFT);
-            wasd_state.shift = false;
+    // Faux-analog mode keeps every report keyboard-only. Depending on which
+    // optional bindings are configured, stick travel selects Walk/Pace/Run,
+    // Walk/Pace, or Pace/Run without exposing a gamepad to the host.
+    if (controller_state.wasdFauxMode && thumbstick_polar_position.distance >= controller_state.deadzone) {
+        uint16_t usable_range = 600 - controller_state.deadzone;
+        uint16_t offset = MIN(thumbstick_polar_position.distance - controller_state.deadzone, usable_range);
+        uint8_t strength = (uint32_t)offset * 100 / usable_range;
+        uint8_t speed_key = REPLICAZERON_FAUX_KEY_DISABLED;
+        if (controller_state.fauxWalkKey != REPLICAZERON_FAUX_KEY_DISABLED && strength < controller_state.fauxWalkThreshold) {
+            speed_key = controller_state.fauxWalkKey;
+        } else if (controller_state.fauxRunKey != REPLICAZERON_FAUX_KEY_DISABLED && strength >= controller_state.fauxRunThreshold) {
+            speed_key = controller_state.fauxRunKey;
         }
+        update_speed_key(speed_key);
+    } else {
+        update_speed_key(REPLICAZERON_FAUX_KEY_DISABLED);
     }
 }

@@ -26,7 +26,11 @@
 *.stackdump
 *.sym
 index.html
+!docs/index.html
 firmware_list.json
+.codex-webhid-local/
+.flash-package-tmp/
+docs/backups/
 
 # QMK-specific
 api_data/v1

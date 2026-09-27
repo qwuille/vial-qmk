@@ -21,7 +21,7 @@
 #define LAYOUT_COUNT 10
 #define MAIN_MENU_ITEM_COUNT 8
 #define RGB_TYPE_COUNT 3
-#define CALIBRATION_ITEM_COUNT 2
+#define CALIBRATION_ITEM_COUNT 3
 #define SIDE_LED_MENU_ITEM_COUNT 5
 #define DISPLAY_MENU_ITEM_COUNT 2
 #define REPLICAZERON_RGB_LED_COUNT_DEFAULT 11
@@ -34,6 +34,10 @@
 #define REPLICAZERON_LOGO_INTERVAL_INDEX(config) ((config) >> 4)
 #define OLED_LAYOUT_PRESET_COUNT 5
 #define REPLICAZERON_LAST_MACRO_NONE UINT8_MAX
+#define REPLICAZERON_FAUX_KEY_DISABLED 0
+#define REPLICAZERON_FAUX_RUN_KEY_DEFAULT 0xE1 /* KC_LSFT */
+#define REPLICAZERON_FAUX_WALK_THRESHOLD_DEFAULT 30
+#define REPLICAZERON_FAUX_RUN_THRESHOLD_DEFAULT 50
 
 typedef enum {
     MENU_NONE = 0,
@@ -53,6 +57,7 @@ typedef enum {
     MENU_CALIB,
     MENU_CALIB_DEADZONE,
     MENU_CALIB_FILTER,
+    MENU_CALIB_SMOOTHING,
     MENU_DISPLAY,
     MENU_FACTORY_RESET
 } menu_state_t;
@@ -97,7 +102,7 @@ typedef enum {
 typedef enum {
     JOYSTICK_MODE_ANALOG = 0,
     JOYSTICK_MODE_WASD,
-    JOYSTICK_MODE_WASD_SHIFT,
+    JOYSTICK_MODE_FAUX_ANALOG,
 #ifdef REPLICAZERON_XINPUT_ENABLE
     JOYSTICK_MODE_XINPUT,
 #endif
@@ -137,7 +142,7 @@ typedef enum {
 
 typedef struct {
     bool wasdMode;
-    bool wasdShiftMode;
+    bool wasdFauxMode;
     bool autoRun;
     uint8_t highestActiveLayer;
     menu_state_t menuState;
@@ -164,6 +169,12 @@ typedef struct {
     uint16_t deadzone;
     uint8_t filterStrength;
     uint8_t filterCandidate;
+    uint8_t smoothingLevel;
+    uint8_t smoothingCandidate;
+    uint8_t fauxWalkKey;
+    uint8_t fauxRunKey;
+    uint8_t fauxWalkThreshold;
+    uint8_t fauxRunThreshold;
 } controller_state_t;
 
 controller_state_t init_state(void);

@@ -13,8 +13,8 @@ existing models and the earlier hardware documentation should use the separate
 
 - Vial remapping, 16 named macros, and ten playable layouts plus a protected Settings
   layer.
-- Per-layout Joystick, WASD, and WASD + Shift modes, plus RP2040-only
-  XInput + keyboard layouts with freely assignable XInput buttons.
+- Per-layout WASD and configurable Faux analog modes. RP2040 additionally has
+  Joystick and XInput + keyboard layouts with freely assignable gamepad buttons.
 - Settings-layer proportional page scrolling with a cursor toggle, plus CAD
   middle-drag, Shift+middle-drag, and right-drag thumbstick modes.
 - VialRGB/OpenRGB control through the existing Vial Raw HID interface.
@@ -40,10 +40,37 @@ Keymap:   vial
 MCU:      STM32F103 Blue Pill or compatible clone
 ```
 
+The STM32 USB HID/DirectInput joystick gaming mode was removed from the
+recommended Standard release after
+testing showed that mixed joystick and keyboard input made games repeatedly
+switch their HUD and active input prompts. That switching was not smooth and
+could introduce visible hesitation during play. STM32 therefore presents its
+gaming controls as keyboard input only. Its analog thumbstick sampling is still
+used internally for proportional scrolling, cursor control, and CAD pan/orbit.
+The separately published, feature-frozen DirectInput compatibility release is
+available for programs and games where the original interface works correctly.
+
 Build it with:
 
 ```sh
 qmk compile -kb handwired/replicazeron/stm32f103 -km vial
+```
+
+Two STM32 release variants are published:
+
+- **Standard** (`handwired_replicazeron_stm32f103_vial.bin`) is recommended.
+  It uses keyboard-only gaming modes and remains eligible for future feature
+  additions.
+- **DirectInput compatibility**
+  (`handwired_replicazeron_stm32f103_directinput_vial.bin`) restores the USB
+  HID joystick and bindable gamepad buttons for software where that interface
+  is useful. It is feature-frozen because the STM32 flash is almost full; it
+  receives maintenance fixes but no new features.
+
+Build the compatibility variant with:
+
+```sh
+qmk compile -kb handwired/replicazeron/stm32f103 -km vial -e REPLICAZERON_STM32_DIRECTINPUT=yes
 ```
 
 The Raspberry Pi Pico target uses the same Vial keymap and Replicazeron feature

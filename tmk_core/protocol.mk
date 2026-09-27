@@ -65,9 +65,14 @@ endif
 
 ifeq ($(strip $(JOYSTICK_ENABLE)), yes)
     OPT_DEFS += -DJOYSTICK_ENABLE
-    ifeq ($(strip $(SHARED_EP_ENABLE)), yes)
-        OPT_DEFS += -DJOYSTICK_SHARED_EP
-        SHARED_EP_ENABLE = yes
+    # An explicit `JOYSTICK_SHARED_EP = no` keeps the gamepad on its own HID
+    # interface. This is useful for Windows controller software which may not
+    # enumerate a joystick collection combined with VIA/keyboard reports.
+    ifneq ($(strip $(JOYSTICK_SHARED_EP)), no)
+        ifeq ($(strip $(SHARED_EP_ENABLE)), yes)
+            OPT_DEFS += -DJOYSTICK_SHARED_EP
+            SHARED_EP_ENABLE = yes
+        endif
     endif
 endif
 

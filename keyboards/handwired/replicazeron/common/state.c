@@ -19,7 +19,7 @@
 controller_state_t init_state(void) {
     controller_state_t controller_state = {
         .wasdMode = false,
-        .wasdShiftMode = false,
+        .wasdFauxMode = false,
         .autoRun = false,
         .highestActiveLayer = 0,
         .menuState = MENU_NONE,
@@ -44,6 +44,12 @@ controller_state_t init_state(void) {
         .deadzone = _DEADZONE,
         .filterStrength = _FILTER_STRENGTH,
         .filterCandidate = _FILTER_STRENGTH,
+        .smoothingLevel = _SMOOTHING_LEVEL,
+        .smoothingCandidate = _SMOOTHING_LEVEL,
+        .fauxWalkKey = REPLICAZERON_FAUX_KEY_DISABLED,
+        .fauxRunKey = REPLICAZERON_FAUX_RUN_KEY_DEFAULT,
+        .fauxWalkThreshold = REPLICAZERON_FAUX_WALK_THRESHOLD_DEFAULT,
+        .fauxRunThreshold = REPLICAZERON_FAUX_RUN_THRESHOLD_DEFAULT,
     };
 
     return controller_state;

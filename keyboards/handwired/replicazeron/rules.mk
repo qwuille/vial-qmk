@@ -1,4 +1,3 @@
-JOYSTICK_ENABLE = yes
 OLED_ENABLE = yes
 
 LEDS_ENABLE = yes

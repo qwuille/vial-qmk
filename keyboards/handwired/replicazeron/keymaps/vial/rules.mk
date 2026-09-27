@@ -13,7 +13,9 @@ OPT_DEFS += -DDYNAMIC_KEYMAP_LAYER_COUNT=$(DYNAMIC_KEYMAP_LAYER_COUNT) -DVIA_EEP
 
 COMBO_ENABLE = no
 QMK_SETTINGS = no
-TAP_DANCE_ENABLE = yes
+# The Blue Pill uses this flash budget for adjustable analog smoothing. The
+# RP2040 override in post_rules.mk restores Tap Dance on the larger target.
+TAP_DANCE_ENABLE = no
 KEY_OVERRIDE_ENABLE = no
 CONSOLE_ENABLE = no
 NKRO_ENABLE = no

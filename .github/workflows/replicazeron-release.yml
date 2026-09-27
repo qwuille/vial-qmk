@@ -1,0 +1,74 @@
+name: Replicazeron firmware release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create or update
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/qmk/qmk_cli@sha256:2dc05fc9f32efebd6b05c2b8676ee548358bc7e151e9dbf4dac6b6eed4513b07
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Build all maintained Replicazeron variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          mkdir -p release
+
+          qmk compile -c -kb handwired/replicazeron/stm32f103 -km vial
+          cp handwired_replicazeron_stm32f103_vial.bin release/
+
+          qmk compile -c -kb handwired/replicazeron/stm32f103 -km vial \
+            -e REPLICAZERON_STM32_DIRECTINPUT=yes
+          cp handwired_replicazeron_stm32f103_vial.bin \
+            release/handwired_replicazeron_stm32f103_directinput_vial.bin
+
+          qmk compile -c -kb handwired/replicazeron/rp2040 -km vial
+          cp handwired_replicazeron_rp2040_vial.uf2 release/
+
+          (cd release && sha256sum *.bin *.uf2 > SHA256SUMS.txt)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: replicazeron-firmware
+          path: release/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: replicazeron-firmware
+          path: release
+
+      - name: Create release if needed and upload firmware
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Replicazeron $RELEASE_TAG" \
+              --notes "The STM32 Standard build is the recommended release and may receive new features. The STM32 DirectInput compatibility build preserves the optional HID gamepad interface but is feature-frozen; it receives maintenance fixes only. RP2040 remains experimental until hardware validation."
+          fi
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --clobber release/*

@@ -64,27 +64,43 @@ enum kb_keycodes {
     SETTINGS_MOUSE_TOGGLE
 };
 
-#ifdef REPLICAZERON_XINPUT_ENABLE
-enum xinput_keycodes {
-    XI_A = QK_KB_0,
-    XI_B,
-    XI_X,
-    XI_Y,
-    XI_UP,
-    XI_DOWN,
-    XI_LEFT,
-    XI_RIGHT,
-    XI_LB,
-    XI_RB,
-    XI_LT,
-    XI_RT,
-    XI_BACK,
-    XI_START,
-    XI_LS,
-    XI_RS,
-    XI_GUIDE
+/* Vial custom keycodes for the 32 buttons advertised by the HID gamepad.
+ * On RP2040, buttons 1-17 also carry the corresponding XInput meaning while
+ * the selected layout is in XInput mode. */
+enum gamepad_keycodes {
+    GP_BUTTON_1 = QK_KB_0,
+    GP_BUTTON_2,
+    GP_BUTTON_3,
+    GP_BUTTON_4,
+    GP_BUTTON_5,
+    GP_BUTTON_6,
+    GP_BUTTON_7,
+    GP_BUTTON_8,
+    GP_BUTTON_9,
+    GP_BUTTON_10,
+    GP_BUTTON_11,
+    GP_BUTTON_12,
+    GP_BUTTON_13,
+    GP_BUTTON_14,
+    GP_BUTTON_15,
+    GP_BUTTON_16,
+    GP_BUTTON_17,
+    GP_BUTTON_18,
+    GP_BUTTON_19,
+    GP_BUTTON_20,
+    GP_BUTTON_21,
+    GP_BUTTON_22,
+    GP_BUTTON_23,
+    GP_BUTTON_24,
+    GP_BUTTON_25,
+    GP_BUTTON_26,
+    GP_BUTTON_27,
+    GP_BUTTON_28,
+    GP_BUTTON_29,
+    GP_BUTTON_30,
+    GP_BUTTON_31,
+    GP_BUTTON_32
 };
-#endif
 
 #ifdef VIA_ENABLE
 #    define REPLICAZERON_TITLE_COUNT 11

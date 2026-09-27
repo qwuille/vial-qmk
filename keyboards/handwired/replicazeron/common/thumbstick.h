@@ -32,7 +32,7 @@ typedef struct {
     bool a;
     bool s;
     bool d;
-    bool shift;
+    uint8_t speedKey;
 } wasd_state_t;
 
 thumbstick_polar_position_t thumbstick_polar_position ;
