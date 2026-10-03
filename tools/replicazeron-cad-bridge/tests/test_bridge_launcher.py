@@ -60,7 +60,11 @@ class BridgeLauncherTests(unittest.TestCase):
             self.assertTrue(started)
             self.assertEqual(
                 popen.call_args.args[0],
-                ["/tmp/ReplicazeronFreeCAD/ReplicazeronCadBridge", "--parent-pid", str(launcher.os.getpid())],
+                [
+                    launcher.os.path.join("/tmp/ReplicazeronFreeCAD", launcher.LINUX_EXECUTABLE_NAME),
+                    "--parent-pid",
+                    str(launcher.os.getpid()),
+                ],
             )
             self.assertTrue(popen.call_args.kwargs["start_new_session"])
             self.assertNotIn("creationflags", popen.call_args.kwargs)
