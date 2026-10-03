@@ -40,5 +40,6 @@ class BridgeLauncherTests(unittest.TestCase):
                 started, _message = launcher.ensure_bridge_started("C:/Replicazeron")
                 self.assertTrue(started)
                 command = popen.call_args.args[0]
-                self.assertEqual(command, ["C:/Replicazeron/ReplicazeronCadBridge.exe"])
+                expected = launcher.os.path.join("C:/Replicazeron", launcher.EXECUTABLE_NAME)
+                self.assertEqual(command, [expected])
                 self.assertEqual(popen.call_args.kwargs["creationflags"], 0x08000008)
