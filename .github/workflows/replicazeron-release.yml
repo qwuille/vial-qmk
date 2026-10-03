@@ -163,14 +163,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          printf '%s\n\n%s\n\n%s\n' \
+            'The STM32 Standard build is recommended.' \
+            'The Windows Fusion package includes the Fusion add-in and a self-contained system-tray bridge; Python and a separate bridge download are not required. The unmodified stick orbits around the model target, CAD Pan translates the view, and CAD Rotate rolls the view around its viewing axis while keeping the camera position and target fixed. Its settings provide independent left/right and up/down reversal, orbit/rotate and pan speed, automatic bridge startup, and independent momentary or toggle behavior for CAD Pan and CAD Rotate. Both controls can be assigned to remappable buttons in Vial.' \
+            'The Windows FreeCAD 1.1 package has been validated with physical Replicazeron hardware. The Linux x86_64 FreeCAD package remains experimental and has not yet been hardware-tested.' \
+            > release-notes.md
           if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --title "Replicazeron $RELEASE_TAG" \
-              --notes "The STM32 Standard build is recommended.
-
-The Windows Fusion package includes the Fusion add-in and a self-contained system-tray bridge; Python and a separate bridge download are not required. The unmodified stick orbits around the model target, CAD Pan translates the view, and CAD Rotate rolls the view around its viewing axis while keeping the camera position and target fixed. Its settings provide independent left/right and up/down reversal, orbit/rotate and pan speed, automatic bridge startup, and independent momentary or toggle behavior for CAD Pan and CAD Rotate. Both controls can be assigned to remappable buttons in Vial.
-
-The Windows FreeCAD 1.1 package has been validated with physical Replicazeron hardware. The Linux x86_64 FreeCAD package remains experimental and has not yet been hardware-tested."
+              --notes-file release-notes.md
           fi
           gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
             --clobber release/*
