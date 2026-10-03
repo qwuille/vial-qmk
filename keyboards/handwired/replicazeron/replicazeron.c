@@ -19,6 +19,7 @@
 #include "usb_util.h"
 #include "eeconfig.h"
 #include "raw_hid.h"
+#include "version.h"
 #ifdef REPLICAZERON_XINPUT_ENABLE
 #    include "usb_main.h"
 #endif
@@ -925,7 +926,7 @@ static void set_deadzone(uint16_t deadzone) {
 #    define REPLICAZERON_CAD_STICK_GET 0x1C
 #    define REPLICAZERON_DEVICE_STM32F103 0x01
 #    define REPLICAZERON_DEVICE_RP2040 0x02
-#    define REPLICAZERON_IDENTITY_FORMAT 0x02
+#    define REPLICAZERON_IDENTITY_FORMAT 0x03
 #    define REPLICAZERON_VARIANT_STM32_STANDARD 0x01
 #    define REPLICAZERON_VARIANT_STM32_DIRECTINPUT 0x02
 #    define REPLICAZERON_VARIANT_RP2040_FULL 0x03
@@ -1024,6 +1025,12 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
 #endif
         data[8] = capabilities & 0xFF;
         data[9] = capabilities >> 8;
+        for (uint8_t index = 10; index < 32; index++) {
+            data[index] = 0;
+        }
+        for (uint8_t index = 0; index < sizeof(QMK_VERSION) - 1 && index < 22; index++) {
+            data[10 + index] = QMK_VERSION[index];
+        }
     } else if (data[1] == REPLICAZERON_CONFIG_HEARTBEAT) {
         data[3] = 1;
     } else if (data[1] == REPLICAZERON_SETTINGS_STICK_GET) {
@@ -1151,7 +1158,7 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
             set_faux_analog_config(data[3], data[4], data[5], data[6]);
         }
     } else if (data[1] == REPLICAZERON_CAD_STICK_GET) {
-        data[3] = 1; /* CAD bridge report format. */
+        data[3] = 2; /* CAD bridge report format. */
         data[4] = controller_state.highestActiveLayer == _SETTINGS && controller_state.settingsStickMode == SETTINGS_STICK_CAD_BRIDGE;
         data[5] = thumbstick_polar_position.angle >> 8;
         data[6] = thumbstick_polar_position.angle & 0xFF;
@@ -1159,6 +1166,8 @@ void raw_hid_receive_kb(uint8_t *data, uint8_t length) {
         data[8] = thumbstick_polar_position.distance & 0xFF;
         data[9] = controller_state.deadzone >> 8;
         data[10] = controller_state.deadzone & 0xFF;
+        data[11] = controller_state.cadPanMode;
+        data[12] = controller_state.cadRotateMode;
     } else if (data[1] == REPLICAZERON_MODE_GET) {
         if (data[2] >= LAYOUT_COUNT) {
             data[0] = id_unhandled;
@@ -2471,15 +2480,24 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
         unregister_code(KC_W);
       }
     }
+    else if (keycode == SETTINGS_MOUSE_TOGGLE || keycode == CAD_PAN_TOGGLE || keycode == CAD_ROTATE_TOGGLE) {
+        if (controller_state.highestActiveLayer == _SETTINGS &&
+            controller_state.settingsStickMode == SETTINGS_STICK_CAD_BRIDGE) {
+            if (keycode == CAD_ROTATE_TOGGLE) {
+                controller_state.cadRotateMode = record->event.pressed;
+            } else {
+                controller_state.cadPanMode = record->event.pressed;
+            }
+        } else if (record->event.pressed) {
 #ifdef MOUSEKEY_ENABLE
-    else if (keycode == SETTINGS_MOUSE_TOGGLE) {
-        if (record->event.pressed && controller_state.highestActiveLayer == _SETTINGS && controller_state.settingsStickMode == SETTINGS_STICK_MOUSE) {
-            settings_mouse_cursor_mode = !settings_mouse_cursor_mode;
-            settings_mouse_movement_active = false;
+            if (keycode == SETTINGS_MOUSE_TOGGLE && controller_state.settingsStickMode == SETTINGS_STICK_MOUSE) {
+                settings_mouse_cursor_mode = !settings_mouse_cursor_mode;
+                settings_mouse_movement_active = false;
+            }
+#endif
         }
         return false;
     }
-#endif
     return true;
 };
 
@@ -2492,6 +2510,10 @@ layer_state_t layer_state_set_kb(layer_state_t state) {
         apply_layout_mode(controller_state.activeLayout);
     } else {
         release_wasd_keys();
+    }
+    if (controller_state.highestActiveLayer != _SETTINGS) {
+        controller_state.cadPanMode = false;
+        controller_state.cadRotateMode = false;
     }
 
     return state;

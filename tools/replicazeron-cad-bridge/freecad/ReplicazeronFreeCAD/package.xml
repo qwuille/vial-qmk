@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
   <name>ReplicazeronFreeCAD</name>
-  <description>Pointer-independent FreeCAD viewport rotation using the Replicazeron analog thumbstick.</description>
-  <version>0.2.0</version>
+  <description>Pointer-independent FreeCAD viewport orbit, rotate, and pan using the Replicazeron analog thumbstick.</description>
+  <version>0.3.0</version>
   <maintainer email="">Replicazeron contributors</maintainer>
   <license file="LICENSE">MIT</license>
   <content>
     <workbench>
       <classname>ReplicazeronWorkbench</classname>
-      <subdirectory>ReplicazeronFreeCAD</subdirectory>
+      <subdirectory>./</subdirectory>
     </workbench>
   </content>
 </package>

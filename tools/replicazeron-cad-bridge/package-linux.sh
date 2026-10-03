@@ -21,4 +21,3 @@ install -m 0755 "$executable" "$package_directory/ReplicazeronCadBridge"
 cp "$bridge_root/README.md" "$package_directory/README.md"
 
 tar -C "$staging_directory" -czf "$output_directory/ReplicazeronFreeCAD-linux-x86_64.tar.gz" ReplicazeronFreeCAD
-install -m 0755 "$executable" "$output_directory/ReplicazeronCadBridge-linux-x86_64"

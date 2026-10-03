@@ -152,6 +152,8 @@ typedef struct {
     uint8_t layoutModes[LAYOUT_COUNT];
     uint8_t layoutDisplayPresets[LAYOUT_COUNT];
     uint8_t settingsStickMode;
+    bool cadPanMode;
+    bool cadRotateMode;
     uint8_t displayTimerConfig;
     uint8_t lastMacro;
     uint8_t macroSlotsUsed;

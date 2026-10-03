@@ -16,8 +16,9 @@ existing models and the earlier hardware documentation should use the separate
 - Per-layout WASD and configurable Faux analog modes. RP2040 additionally has
   Joystick and XInput + keyboard layouts with freely assignable gamepad buttons.
 - Settings-layer proportional page scrolling with a cursor toggle, plus a
-  pointer-independent analog CAD bridge for Fusion and FreeCAD. Entering
-  Settings releases and suppresses the playable layer's WASD/Faux keys.
+  pointer-independent Fusion add-in for analog orbit, camera roll, and pan. A
+  tested Windows FreeCAD add-on and experimental Linux package are also included. Entering Settings releases and
+  suppresses the playable layer's WASD/Faux keys.
 - VialRGB/OpenRGB control through the existing Vial Raw HID interface.
 - Firmware-controlled lighting with reactive, splash, multisplash,
   reactive-cross, and reactive-wide effects. The RP2040 build provides sixteen
@@ -107,6 +108,37 @@ this project, including the OLED interface and addressable RGB/OpenRGB support,
 and would require redesigned persistent configuration. New builds should use
 the supported STM32F103 Blue Pill or RP2040 target instead.
 
+## Fusion CAD add-in
+
+The Windows release includes `ReplicazeronFusion-windows.zip`. It contains the
+Fusion add-in and a self-contained background bridge, so users do not need to
+install Python or run a separate command. Fusion starts the bridge in the
+notification area and the bridge closes after the last supported CAD host
+closes.
+
+Select **CAD bridge** for the Settings-layer stick mode. The bridge reads the
+controller through Raw HID and sends only local UDP messages to the Fusion
+add-in. Fusion applies the analog stick directly to its viewport camera without
+moving the mouse pointer. The bridge pauses while Vial is in the foreground and
+reconnects automatically afterward.
+
+Open **Replicazeron settings** from Fusion's **Add-Ins** menu to configure:
+
+- **Reverse left / right** and **Reverse up / down** independently.
+- Orbit/rotate speed and pan speed.
+- Independent **Toggle CAD Pan instead of hold** and **Toggle CAD Rotate instead
+  of hold** settings. Each Vial-assigned modifier can be momentary or latched.
+- Automatic bridge startup.
+
+The **CAD Pan** and **CAD Rotate** keys can be assigned to remappable buttons
+from Vial's **User** tab. The default Settings mouse-mode button also acts as
+the momentary pan control while CAD bridge mode is active.
+
+> [!WARNING]
+> The FreeCAD 1.1 add-on has been validated on Windows with physical
+> Replicazeron hardware. The Linux x86_64 package remains experimental and
+> has not yet been hardware-tested.
+
 ## Branches and maintenance scope
 
 - **`vial`** is the current default maintained Replicazeron firmware.
@@ -124,7 +156,7 @@ documented core integrations, not every inherited keyboard definition.
 - [Complete component, pin, power, and compatibility guide](keyboards/handwired/replicazeron/HARDWARE.md)
 - [Firmware features, OpenRGB, WebHID, DFU, wiring, and usage](keyboards/handwired/replicazeron/readme.md)
 - [Vial layout implementation notes](keyboards/handwired/replicazeron/VIAL_LAYOUT_NOTES.md)
-- [Fusion and FreeCAD analog camera bridge](tools/replicazeron-cad-bridge/README.md)
+- [Fusion add-in and experimental FreeCAD analog camera bridge](tools/replicazeron-cad-bridge/README.md)
 - [Interactive RP2040 wiring guide](docs/replicazeron-rp2040-wiring-diagram.html) and
   [offline PDF](docs/Replicazeron_RP2040_Wiring_Diagram.pdf)
 - [Interactive STM32F103 wiring guide](docs/replicazeron-stm32f103-wiring-diagram.html) and

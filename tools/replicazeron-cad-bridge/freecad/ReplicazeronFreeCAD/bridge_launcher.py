@@ -8,9 +8,6 @@ import sys
 
 WINDOWS_EXECUTABLE_NAME = "ReplicazeronCadBridge.exe"
 LINUX_EXECUTABLE_NAME = "ReplicazeronCadBridge"
-_started = False
-
-
 def _executable_name():
     return WINDOWS_EXECUTABLE_NAME if sys.platform == "win32" else LINUX_EXECUTABLE_NAME
 
@@ -26,9 +23,6 @@ def _candidates(addon_directory):
 
 
 def ensure_bridge_started(addon_directory):
-    global _started
-    if _started:
-        return True, "Replicazeron CAD bridge launch already requested"
     if sys.platform not in {"win32", "linux"}:
         return False, "Automatic bridge startup is currently available on Windows and Linux only"
 
@@ -55,5 +49,4 @@ def ensure_bridge_started(addon_directory):
     except OSError as error:
         return False, "Could not start Replicazeron CAD bridge: {}".format(error)
 
-    _started = True
     return True, "Replicazeron CAD bridge started automatically"

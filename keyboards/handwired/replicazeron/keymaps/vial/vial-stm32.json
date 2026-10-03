@@ -3,7 +3,10 @@
     "vendorId": "0x4142",
     "productId": "0x2305",
     "lighting": "vialrgb",
-    "customKeycodes": [],
+    "customKeycodes": [
+        {"name":"CAD Pan","title":"CAD","shortName":"Pan"},
+        {"name":"CAD Rotate","title":"CAD","shortName":"Rotate"}
+    ],
     "matrix": {"rows": 6, "cols": 5},
     "layouts": {
         "keymap": [

@@ -94,7 +94,6 @@ jobs:
         with:
           name: replicazeron-cad-bridge-windows
           path: |
-            tools/replicazeron-cad-bridge/release/ReplicazeronCadBridge.exe
             tools/replicazeron-cad-bridge/release/ReplicazeronFusion-windows.zip
             tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-windows.zip
           if-no-files-found: error
@@ -132,7 +131,6 @@ jobs:
         with:
           name: replicazeron-cad-bridge-linux
           path: |
-            tools/replicazeron-cad-bridge/release/ReplicazeronCadBridge-linux-x86_64
             tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-linux-x86_64.tar.gz
           if-no-files-found: error
 
@@ -168,7 +166,11 @@ jobs:
           if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --title "Replicazeron $RELEASE_TAG" \
-              --notes "The STM32 Standard build is recommended. The Windows CAD add-in packages include a self-contained system-tray bridge that Fusion or FreeCAD manages automatically; Python is not required. The Linux x86_64 bridge and FreeCAD package are experimental and have not been hardware-tested."
+              --notes "The STM32 Standard build is recommended.
+
+The Windows Fusion package includes the Fusion add-in and a self-contained system-tray bridge; Python and a separate bridge download are not required. The unmodified stick orbits around the model target, CAD Pan translates the view, and CAD Rotate rolls the view around its viewing axis while keeping the camera position and target fixed. Its settings provide independent left/right and up/down reversal, orbit/rotate and pan speed, automatic bridge startup, and independent momentary or toggle behavior for CAD Pan and CAD Rotate. Both controls can be assigned to remappable buttons in Vial.
+
+The Windows FreeCAD 1.1 package has been validated with physical Replicazeron hardware. The Linux x86_64 FreeCAD package remains experimental and has not yet been hardware-tested."
           fi
           gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
             --clobber release/*

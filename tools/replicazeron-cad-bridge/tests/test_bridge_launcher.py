@@ -50,6 +50,17 @@ class BridgeLauncherTests(unittest.TestCase):
                 self.assertEqual(command, [expected, "--parent-pid", str(launcher.os.getpid())])
                 self.assertEqual(popen.call_args.kwargs["creationflags"], 0x08000008)
 
+    def test_reload_rechecks_bridge_after_a_tray_exit(self):
+        launcher = self.launchers[0]
+        with mock.patch.object(launcher.sys, "platform", "win32"), \
+             mock.patch.object(launcher.os.path, "isfile", return_value=True), \
+             mock.patch.object(launcher.subprocess, "CREATE_NO_WINDOW", 0x08000000, create=True), \
+             mock.patch.object(launcher.subprocess, "DETACHED_PROCESS", 0x00000008, create=True), \
+             mock.patch.object(launcher.subprocess, "Popen") as popen:
+            launcher.ensure_bridge_started("C:/Replicazeron")
+            launcher.ensure_bridge_started("C:/Replicazeron")
+            self.assertEqual(popen.call_count, 2)
+
     def test_freecad_starts_linux_bridge_in_background(self):
         launcher = self.launchers[1]
         launcher._started = False

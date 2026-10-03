@@ -29,6 +29,8 @@ controller_state_t init_state(void) {
         .layoutModes = {JOYSTICK_MODE_ANALOG},
         .layoutDisplayPresets = {OLED_LAYOUT_INPUT},
         .settingsStickMode = SETTINGS_STICK_MOUSE,
+        .cadPanMode = false,
+        .cadRotateMode = false,
         .displayTimerConfig = REPLICAZERON_DISPLAY_TIMER_CONFIG(REPLICAZERON_OLED_OFF_DEFAULT, REPLICAZERON_LOGO_INTERVAL_DEFAULT),
         .lastMacro = REPLICAZERON_LAST_MACRO_NONE,
         .macroSlotsUsed = 0,

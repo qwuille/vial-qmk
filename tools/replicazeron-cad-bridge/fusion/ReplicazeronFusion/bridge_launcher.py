@@ -7,9 +7,6 @@ import subprocess
 import sys
 
 EXECUTABLE_NAME = "ReplicazeronCadBridge.exe"
-_started = False
-
-
 def _candidates(addin_directory):
     configured = os.environ.get("REPLICAZERON_CAD_BRIDGE")
     if configured:
@@ -21,9 +18,6 @@ def _candidates(addin_directory):
 
 
 def ensure_bridge_started(addin_directory):
-    global _started
-    if _started:
-        return True, "Replicazeron CAD bridge launch already requested"
     if sys.platform != "win32":
         return False, "Automatic bridge startup is currently available on Windows only"
 
@@ -45,5 +39,4 @@ def ensure_bridge_started(addin_directory):
     except OSError as error:
         return False, "Could not start Replicazeron CAD bridge: {}".format(error)
 
-    _started = True
     return True, "Replicazeron CAD bridge started automatically"

@@ -68,6 +68,7 @@ enum kb_keycodes {
  * On RP2040, buttons 1-17 also carry the corresponding XInput meaning while
  * the selected layout is in XInput mode. */
 enum gamepad_keycodes {
+#ifdef JOYSTICK_ENABLE
     GP_BUTTON_1 = QK_KB_0,
     GP_BUTTON_2,
     GP_BUTTON_3,
@@ -99,7 +100,13 @@ enum gamepad_keycodes {
     GP_BUTTON_29,
     GP_BUTTON_30,
     GP_BUTTON_31,
-    GP_BUTTON_32
+    GP_BUTTON_32,
+    CAD_PAN_TOGGLE,
+    CAD_ROTATE_TOGGLE
+#else
+    CAD_PAN_TOGGLE = QK_KB_0,
+    CAD_ROTATE_TOGGLE
+#endif
 };
 
 #ifdef VIA_ENABLE

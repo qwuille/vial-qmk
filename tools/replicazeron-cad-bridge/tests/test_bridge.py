@@ -13,15 +13,17 @@ sys.modules[SPEC.name] = BRIDGE
 SPEC.loader.exec_module(BRIDGE)
 
 
-def report(angle=0, distance=512, deadzone=100, active=True):
+def report(angle=0, distance=512, deadzone=100, active=True, pan=False, rotate=False, version=2):
     data = bytearray(32)
     data[0] = BRIDGE.COMMAND
     data[1] = BRIDGE.CAD_STICK_GET
-    data[3] = 1
+    data[3] = version
     data[4] = int(active)
     data[5:7] = angle.to_bytes(2, "big")
     data[7:9] = distance.to_bytes(2, "big")
     data[9:11] = deadzone.to_bytes(2, "big")
+    data[11] = int(pan)
+    data[12] = int(rotate)
     return data
 
 
@@ -37,6 +39,19 @@ class DecodeReportTests(unittest.TestCase):
         sample = BRIDGE.decode_report(report(angle=90), 8, 2.0)
         self.assertAlmostEqual(sample.x, -1.0)
         self.assertAlmostEqual(sample.y, 0.0, places=7)
+
+    def test_pan_mode(self):
+        self.assertTrue(BRIDGE.decode_report(report(pan=True), 9, 3.0).pan)
+        self.assertFalse(BRIDGE.decode_report(report(), 10, 4.0).pan)
+
+    def test_rotate_mode(self):
+        self.assertTrue(BRIDGE.decode_report(report(rotate=True), 9, 3.0).rotate)
+        self.assertFalse(BRIDGE.decode_report(report(), 10, 4.0).rotate)
+
+    def test_format_one_remains_compatible(self):
+        sample = BRIDGE.decode_report(report(pan=True, rotate=True, version=1), 9, 3.0)
+        self.assertTrue(sample.pan)
+        self.assertFalse(sample.rotate)
 
     def test_deadzone_and_inactive_reports_are_zero(self):
         centered = BRIDGE.decode_report(report(distance=100), 9, 3.0)

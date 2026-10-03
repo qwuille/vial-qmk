@@ -303,6 +303,12 @@ pointer-independent Fusion/FreeCAD CAD bridge. The same choice is available in
 the standalone WebHID Control Deck. Selecting Settings releases and suppresses
 any WASD/Faux keys from the playable layer underneath it. The five-way remains
 permanently firmware-owned on Settings and is not assigned a CAD action.
+In CAD bridge mode, holding the default Settings mouse-mode key momentarily
+switches the stick from orbit to pan; releasing it returns to orbit. Vial's User
+tab also provides **CAD Pan** and **CAD Rotate**, which can be assigned to any
+remappable keys. CAD Rotate keeps the camera position and target fixed while the
+horizontal stick axis rolls the view. The Fusion and FreeCAD add-in settings independently select
+momentary or toggle behavior for each key.
 
 The OLED `SCREEN` menu similarly chooses a playable layout and cycles its
 display design. Input monitor shows live stick direction, strength, and held

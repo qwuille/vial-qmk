@@ -58,7 +58,6 @@ jobs:
         with:
           name: replicazeron-cad-bridge-windows
           path: |
-            tools/replicazeron-cad-bridge/release/ReplicazeronCadBridge.exe
             tools/replicazeron-cad-bridge/release/ReplicazeronFusion-windows.zip
             tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-windows.zip
           if-no-files-found: error
@@ -97,7 +96,6 @@ jobs:
         with:
           name: replicazeron-cad-bridge-linux
           path: |
-            tools/replicazeron-cad-bridge/release/ReplicazeronCadBridge-linux-x86_64
             tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-linux-x86_64.tar.gz
           if-no-files-found: error
 

@@ -1,6 +1,9 @@
 {
   "rotationDegreesPerSecond": 90.0,
+  "panScalePerSecond": 0.75,
   "invertHorizontal": false,
   "invertVertical": false,
+  "togglePanMode": false,
+  "toggleRotateMode": false,
   "startBridgeAutomatically": true
 }

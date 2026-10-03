@@ -48,5 +48,4 @@ foreach ($package in $packages) {
     Compress-Archive -LiteralPath $packageDirectory -DestinationPath $archive -CompressionLevel Optimal
 }
 
-Copy-Item -LiteralPath $bridgeExecutable -Destination (Join-Path $releaseDirectory "ReplicazeronCadBridge.exe") -Force
 Remove-Item -LiteralPath $stagingDirectory -Recurse -Force

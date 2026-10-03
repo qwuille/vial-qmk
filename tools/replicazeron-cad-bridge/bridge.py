@@ -42,6 +42,8 @@ class CadSample:
     x: float
     y: float
     strength: float
+    pan: bool
+    rotate: bool
     timestamp: float
 
 
@@ -288,7 +290,7 @@ def decode_report(report: bytes | bytearray | list[int], sequence: int, timestam
     angle = (data[5] << 8) | data[6]
     distance = (data[7] << 8) | data[8]
     deadzone = (data[9] << 8) | data[10]
-    if version != 1 or angle >= 360 or deadzone >= 512:
+    if version not in (1, 2) or angle >= 360 or deadzone >= 512:
         raise ValueError("unsupported or malformed CAD-stick reply")
 
     strength = 0.0
@@ -298,7 +300,8 @@ def decode_report(report: bytes | bytearray | list[int], sequence: int, timestam
     # Firmware angle 0 is up, 90 is left, 180 is down, and 270 is right.
     x = -math.sin(radians) * strength
     y = math.cos(radians) * strength
-    return CadSample(version, sequence, active, x, y, strength, timestamp)
+    rotate = version >= 2 and data[12] == 1
+    return CadSample(2, sequence, active, x, y, strength, data[11] == 1, rotate, timestamp)
 
 
 class ReplicazeronHid:
@@ -362,7 +365,7 @@ def demo_sample(sequence: int, started: float) -> CadSample:
     elapsed = time.monotonic() - started
     angle = elapsed * 1.2
     strength = 0.65
-    return CadSample(1, sequence, True, math.sin(angle) * strength, math.cos(angle) * strength, strength, time.monotonic())
+    return CadSample(2, sequence, True, math.sin(angle) * strength, math.cos(angle) * strength, strength, False, False, time.monotonic())
 
 
 def send_sample(sock: socket.socket, ports: tuple[int, ...], sample: CadSample) -> None:
@@ -462,7 +465,7 @@ def main() -> int:
                 if not yielding_to_vial:
                     LOGGER.info("Vial is foreground; releasing Raw HID")
                     if connected:
-                        inactive = CadSample(1, sequence, False, 0.0, 0.0, 0.0, now)
+                        inactive = CadSample(2, sequence, False, 0.0, 0.0, 0.0, False, False, now)
                         send_sample(sender, ports, inactive)
                     device.close()
                     connected = False
@@ -493,7 +496,7 @@ def main() -> int:
                     LOGGER.warning("Replicazeron unavailable: %s", message)
                     last_error = message
                 if connected:
-                    inactive = CadSample(1, sequence, False, 0.0, 0.0, 0.0, time.monotonic())
+                    inactive = CadSample(2, sequence, False, 0.0, 0.0, 0.0, False, False, time.monotonic())
                     send_sample(sender, ports, inactive)
                 connected = False
                 device.close()

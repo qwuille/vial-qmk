@@ -36,7 +36,9 @@
         {"name":"Gamepad Button 29","title":"Gamepad","shortName":"GP 29"},
         {"name":"Gamepad Button 30","title":"Gamepad","shortName":"GP 30"},
         {"name":"Gamepad Button 31","title":"Gamepad","shortName":"GP 31"},
-        {"name":"Gamepad Button 32","title":"Gamepad","shortName":"GP 32"}
+        {"name":"Gamepad Button 32","title":"Gamepad","shortName":"GP 32"},
+        {"name":"CAD Pan","title":"CAD","shortName":"Pan"},
+        {"name":"CAD Rotate","title":"CAD","shortName":"Rotate"}
     ],
     "matrix": {
         "rows": 6,
