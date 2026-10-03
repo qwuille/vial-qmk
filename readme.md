@@ -93,21 +93,19 @@ qmk compile -kb handwired/replicazeron/rp2040 -km vial
 Hold **BOOTSEL** while connecting the Pico, then copy
 `handwired_replicazeron_rp2040_vial.uf2` to the `RPI-RP2` drive.
 
-### Pro Micro support
+### Pro Micro
 
-This version does **not** support the standard ATmega32U4 Pro Micro. A build
-probe found that the current compact firmware exceeds the Pro Micro's
+This version does **not** support the standard ATmega32U4 Pro Micro, and its
+obsolete build target has been removed. A previous build probe found that the
+current compact firmware exceeds the Pro Micro's
 Caterina application space by approximately 12.5 KB, and its 1 KB EEPROM
 cannot hold the present Vial layers, macro data, profile names, and
 Replicazeron metadata together.
 
-A Pro Micro build could only fit as a substantially reduced variant. It would
-lose most of the features that distinguish this project, including the OLED
-interface and addressable RGB/OpenRGB support, and would require reduced or
-redesigned persistent configuration. Such a variant will only be considered
-if there is enough community demand to justify maintaining and testing it.
-For new builds, migrate to the supported STM32F103 Blue Pill or RP2040 target
-instead.
+A Pro Micro build would have to lose most of the features that distinguish
+this project, including the OLED interface and addressable RGB/OpenRGB support,
+and would require redesigned persistent configuration. New builds should use
+the supported STM32F103 Blue Pill or RP2040 target instead.
 
 ## Branches and maintenance scope
 

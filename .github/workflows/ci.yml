@@ -1,117 +1,110 @@
 name: CI
-on: [ pull_request, push, workflow_dispatch ]
+on: [pull_request, push, workflow_dispatch]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  REGEX_ANSI_COLOR: 's/\x1b\[[0-9;]*[mGKHF]//g'
-  REGEX_MAKE_OUTPUT: '/^g*make\[1]: \(Enter\|Leav\)ing directory ''/d'
 
 permissions: {}
 
 jobs:
   test-cad-bridge:
     name: Test CAD bridge
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     steps:
-    - name: (actions) Checkout Vial repo
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
-    - name: Check Python sources and bridge protocol
-      run: |
-        python3 -m compileall -q tools/replicazeron-cad-bridge
-        python3 -m unittest discover -s tools/replicazeron-cad-bridge/tests -v
+      - name: Check Python sources and bridge protocol
+        run: |
+          python3 -m compileall -q tools/replicazeron-cad-bridge
+          python3 -m unittest discover -s tools/replicazeron-cad-bridge/tests -v
+
+  package-cad-bridge:
+    name: Package Windows CAD bridge
+    runs-on: windows-2025
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: tools/replicazeron-cad-bridge/requirements.txt
+
+      - name: Install bridge build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tools/replicazeron-cad-bridge/requirements.txt pyinstaller==6.22.3
+
+      - name: Build and test executable
+        working-directory: tools/replicazeron-cad-bridge
+        run: |
+          python -m unittest discover -s tests -v
+          pyinstaller --clean --noconfirm --onefile --name ReplicazeronCadBridge --hidden-import hid bridge.py
+          .\dist\ReplicazeronCadBridge.exe --self-test
+          .\package-windows.ps1 -Executable .\dist\ReplicazeronCadBridge.exe -OutputDirectory .\release
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: replicazeron-cad-bridge-windows
+          path: |
+            tools/replicazeron-cad-bridge/release/ReplicazeronCadBridge.exe
+            tools/replicazeron-cad-bridge/release/ReplicazeronFusion-windows.zip
+            tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-windows.zip
+          if-no-files-found: error
 
   check-uid:
     name: Check Vial UIDs
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     steps:
-    - name: (actions) Checkout Vial repo
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
-    - name: Verify Vial UID is unique per-keyboard
-      run: python3 util/ci_vial_verify_uid.py
+      - name: Verify Vial UID is unique per keyboard
+        run: python3 util/ci_vial_verify_uid.py
 
-  build-default:
-    name: Build default keymaps for Vial
-    runs-on: ubuntu-latest
+  build-firmware:
+    name: Build ${{ matrix.name }}
+    runs-on: ubuntu-24.04
     container: ghcr.io/qmk/qmk_cli@sha256:b7d7fa8fb4432b569931de5ad59098cb788f440ed61a62c5126746b71aee0f4a
-    env:
-      KEYMAP: default
-
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: STM32F103 Vial
+            keyboard: handwired/replicazeron/stm32f103
+            directinput: false
+          - name: STM32F103 DirectInput Vial
+            keyboard: handwired/replicazeron/stm32f103
+            directinput: true
+          - name: RP2040 Vial
+            keyboard: handwired/replicazeron/rp2040
+            directinput: false
     steps:
-    - name: (actions) Checkout Vial repo
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        submodules: recursive
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: recursive
 
-    - name: Build
-      id: build
-      run: |
-        git config --global --add safe.directory $(pwd)
-        if ! qmk mass-compile -j $(nproc) $(qmk find -km vial | sed "s/:vial$/:${KEYMAP}/");
-          then
-          echo "::error::$(ls -1 .build/failed.log.* | wc -l) keymaps failed to build. See logs and/or job summary for details."
-          exit 1
-        fi
-
-    - name: Dump failure logs
-      if: ${{ failure() && steps.build.conclusion == 'failure' }}
-      run: |
-        echo '### Failure logs' | tee -a "${GITHUB_STEP_SUMMARY}"
-
-        cd .build || exit 1
-        for log in failed.log.*; do
-          pretty_logname="$(echo "${log}" | sed "s/^failed\.log\.[0-9]\+\.// ; s/\.${KEYMAP}$//")"
-
-          printf '\n::group::%s\n%s\n::endgroup::\n' "${pretty_logname}" "$(sed "${REGEX_MAKE_OUTPUT}" < "${log}")"
-          printf '\n<details>\n<summary>%s</summary>\n\n```\n%s\n```\n\n</details>\n' \
-             "${pretty_logname}" "$(sed "${REGEX_MAKE_OUTPUT} ; ${REGEX_ANSI_COLOR}" < "${log}")" >> "${GITHUB_STEP_SUMMARY}"
-        done
-
-  build-vial:
-    name: Build Vial keymaps
-    runs-on: ubuntu-latest
-    container: ghcr.io/qmk/qmk_cli@sha256:b7d7fa8fb4432b569931de5ad59098cb788f440ed61a62c5126746b71aee0f4a
-    env:
-      KEYMAP: vial
-
-    steps:
-    - name: (actions) Checkout Vial repo
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: false
-        submodules: recursive
-
-    - name: Build
-      id: build
-      run: |
-        git config --global --add safe.directory $(pwd)
-        if ! qmk mass-compile -km "${KEYMAP}" -j $(nproc);
-          then
-          echo "::error::$(ls -1 .build/failed.log.* | wc -l) keymaps failed to build. See logs and/or job summary for details."
-          exit 1
-        fi
-
-    - name: Dump failure logs
-      if: ${{ failure() && steps.build.conclusion == 'failure' }}
-      run: |
-        echo '### Failure logs' | tee -a "${GITHUB_STEP_SUMMARY}"
-
-        cd .build || exit 1
-        for log in failed.log.*; do
-          pretty_logname="$(echo "${log}" | sed "s/^failed\.log\.[0-9]\+\.// ; s/\.${KEYMAP}$//")"
-
-          printf '\n::group::%s\n%s\n::endgroup::\n' "${pretty_logname}" "$(sed "${REGEX_MAKE_OUTPUT}" < "${log}")"
-          printf '\n<details>\n<summary>%s</summary>\n\n```\n%s\n```\n\n</details>\n' \
-            "${pretty_logname}" "$(sed "${REGEX_MAKE_OUTPUT} ; ${REGEX_ANSI_COLOR}" < "${log}")" >> "${GITHUB_STEP_SUMMARY}"
-        done
+      - name: Build maintained firmware
+        shell: bash
+        env:
+          KEYBOARD: ${{ matrix.keyboard }}
+          DIRECTINPUT: ${{ matrix.directinput }}
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          options=()
+          if [[ "$DIRECTINPUT" == "true" ]]; then
+            options+=("-e" "REPLICAZERON_STM32_DIRECTINPUT=yes")
+          fi
+          qmk compile -c -kb "$KEYBOARD" -km vial "${options[@]}"

@@ -13,6 +13,11 @@ import traceback
 
 import adsk.core
 
+try:
+    from .bridge_launcher import ensure_bridge_started
+except ImportError:
+    from bridge_launcher import ensure_bridge_started
+
 EVENT_ID = "replicazeron.cad.stick"
 UDP_PORT = 28461
 _handlers = []
@@ -24,6 +29,7 @@ def _load_settings():
         "rotationDegreesPerSecond": 90.0,
         "invertHorizontal": False,
         "invertVertical": False,
+        "startBridgeAutomatically": True,
     }
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "settings.json")
     try:
@@ -199,6 +205,10 @@ def run(_context):
     global _controller
     app = adsk.core.Application.get()
     try:
+        settings = _load_settings()
+        if settings["startBridgeAutomatically"]:
+            _started, message = ensure_bridge_started(os.path.dirname(os.path.realpath(__file__)))
+            app.log(message)
         event = app.registerCustomEvent(EVENT_ID)
         _controller = CadController(app)
         handler = _CadEventHandler(_controller)

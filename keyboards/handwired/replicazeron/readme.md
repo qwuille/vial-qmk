@@ -413,16 +413,15 @@ The complete shared firmware has targets for STM32F103 and Raspberry Pi Pico
 (RP2040). The Pico target has substantially more flash headroom but still needs
 physical validation.
 
-This version does **not** support the standard ATmega32U4 Pro Micro. Although
-an inherited controller definition remains in the source tree, the current
-compact firmware exceeds the Pro Micro's Caterina application space by about
+This version does **not** support the standard ATmega32U4 Pro Micro, and the
+obsolete controller definition has been removed. The current compact firmware
+exceeds the Pro Micro's Caterina application space by about
 12.5 KB. Its 1 KB EEPROM also cannot simultaneously hold the current Vial
 layers, macros, profile names, and Replicazeron metadata. A build that fits
 would have to omit most of the project's distinctive features, including the
 OLED interface and addressable RGB/OpenRGB, and reduce or redesign persistent
-configuration. A limited Pro Micro variant will only be considered if there is
-enough demand to justify maintaining and testing it. New and upgraded builds
-should use the STM32F103 Blue Pill or RP2040 target instead.
+configuration. New and upgraded builds should use the STM32F103 Blue Pill or
+RP2040 target instead.
 
 The maintained STM32F103 Vial build disables QMK's Repeat Key, Caps Word,
 Magic, Layer Lock, Grave Escape, Space Cadet, and NKRO subsystems to preserve

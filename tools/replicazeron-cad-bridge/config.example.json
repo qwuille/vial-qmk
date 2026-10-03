@@ -1,5 +1,6 @@
 {
   "rotationDegreesPerSecond": 90.0,
   "invertHorizontal": false,
-  "invertVertical": false
+  "invertVertical": false,
+  "startBridgeAutomatically": true
 }

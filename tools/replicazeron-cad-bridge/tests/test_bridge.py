@@ -1,7 +1,9 @@
 import importlib.util
 import pathlib
 import sys
+import types
 import unittest
+from unittest import mock
 
 
 MODULE_PATH = pathlib.Path(__file__).parents[1] / "bridge.py"
@@ -47,6 +49,14 @@ class DecodeReportTests(unittest.TestCase):
         data[1] = 0
         with self.assertRaises(ValueError):
             BRIDGE.decode_report(data, 0, 0.0)
+
+    def test_packaged_self_test_does_not_require_a_device(self):
+        with mock.patch.dict(sys.modules, {"hid": types.ModuleType("hid")}):
+            BRIDGE.self_test()
+
+    def test_single_instance_is_unrestricted_off_windows(self):
+        with mock.patch.object(BRIDGE.sys, "platform", "linux"):
+            self.assertTrue(BRIDGE.acquire_single_instance())
 
 
 if __name__ == "__main__":

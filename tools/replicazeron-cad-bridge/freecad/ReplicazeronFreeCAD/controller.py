@@ -11,6 +11,11 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 try:
+    from .bridge_launcher import ensure_bridge_started
+except ImportError:
+    from bridge_launcher import ensure_bridge_started
+
+try:
     from PySide import QtCore
 except ImportError:
     from PySide2 import QtCore
@@ -24,6 +29,7 @@ def _load_settings():
         "rotationDegreesPerSecond": 90.0,
         "invertHorizontal": False,
         "invertVertical": False,
+        "startBridgeAutomatically": True,
     }
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "settings.json")
     try:
@@ -119,6 +125,12 @@ def start():
     global _controller
     if _controller is None:
         _controller = CadController()
+        if _controller.settings["startBridgeAutomatically"]:
+            started, message = ensure_bridge_started(os.path.dirname(os.path.realpath(__file__)))
+            if started:
+                App.Console.PrintMessage(message + "\n")
+            else:
+                App.Console.PrintWarning(message + "\n")
         _controller.start()
 
 

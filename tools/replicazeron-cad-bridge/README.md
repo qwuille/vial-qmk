@@ -1,14 +1,15 @@
 # Replicazeron CAD bridge
 
-This prototype gives Fusion and FreeCAD direct analog camera rotation without
+This bridge gives Fusion and FreeCAD direct analog camera rotation without
 moving the system pointer, holding mouse buttons, or sending keyboard keys.
 The normal mouse remains available for selection and editing.
 
-The bridge is intentionally separate from the CAD programs:
+The bridge is a self-contained Windows executable that the packaged CAD add-ins
+start automatically:
 
 ```text
-Replicazeron Raw HID -> bridge.py -> Fusion add-in (UDP 28461)
-                                -> FreeCAD add-on (UDP 28462)
+Replicazeron Raw HID -> ReplicazeronCadBridge.exe -> Fusion add-in (UDP 28461)
+                                                  -> FreeCAD add-on (UDP 28462)
 ```
 
 All UDP traffic stays on `127.0.0.1`. The adapters discard movement while
@@ -26,7 +27,8 @@ report nor either add-on assigns any CAD action to it.
 - No pan, zoom, view shortcuts, stick-button actions, or five-way actions are
   assigned yet. Those controls can be designed after orbit is hardware-tested.
 
-The implementation is source-verified but still needs testing with a physical
+Only one bridge process runs at a time, even when both CAD applications start
+their bundled copy. The implementation still needs testing with a physical
 controller in both applications.
 
 ## Firmware and WebHID
@@ -37,23 +39,27 @@ middle-drag, Shift+middle-drag, and right-drag modes have been removed. Stored
 mode 1 migrates to CAD bridge; obsolete stored modes 2 and 3 fall back to
 scroll/cursor.
 
-## Start the bridge on Windows
+## Install on Windows
 
-From this directory:
+Download the add-in ZIP for the CAD application from the matching GitHub
+release:
 
-```powershell
-py -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python bridge.py
-```
+- `ReplicazeronFusion-windows.zip`
+- `ReplicazeronFreeCAD-windows.zip`
 
-Use `bridge.py --demo` to send a circular test signal without a controller.
-Stop it with Ctrl+C. Packaging it as a startup application can wait until the
-camera direction and sensitivity have been verified on real hardware.
+Each package contains `ReplicazeronCadBridge.exe`; Python and pip are not
+required. When the add-in starts, it launches the bridge in the background
+without a console window. A rotating diagnostic log is written to
+`%LOCALAPPDATA%\Replicazeron\cad-bridge.log`.
+
+Set `startBridgeAutomatically` to `false` in `settings.json` to disable this.
+For a custom shared executable location, set the `REPLICAZERON_CAD_BRIDGE`
+environment variable. The bridge also checks
+`%LOCALAPPDATA%\Replicazeron\ReplicazeronCadBridge.exe`.
 
 ## Install the Fusion add-in
 
-Copy the complete `fusion\ReplicazeronFusion` directory to:
+Extract the complete `ReplicazeronFusion` directory to:
 
 ```text
 %APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\ReplicazeronFusion
@@ -68,19 +74,32 @@ viewport camera on Fusion's UI thread through a custom application event.
 
 ## Install the FreeCAD add-on
 
-Copy the complete `freecad\ReplicazeronFreeCAD` directory to:
+Extract the complete `ReplicazeronFreeCAD` directory to:
 
 ```text
 %APPDATA%\FreeCAD\Mod\ReplicazeronFreeCAD
 ```
 
-Restart FreeCAD and select the **Replicazeron CAD** workbench once. Its toolbar
-command toggles navigation; after initialization it can remain active while
-another workbench is selected. Edit its `settings.json` to change rotation
-speed or invert an axis.
+Restart FreeCAD. The add-on and bridge start automatically; its toolbar command
+in the **Replicazeron CAD** workbench toggles navigation. It can remain active
+while another workbench is selected. Edit its `settings.json` to change
+rotation speed, invert an axis, or disable automatic bridge startup.
 
 The add-on receives UDP on localhost port 28462 using a Qt timer and updates
 the active Coin camera while retaining the existing focal point.
+
+## Development
+
+Running directly from source still requires Python and the HID dependency:
+
+```powershell
+py -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python bridge.py
+```
+
+Use `bridge.py --demo` to send a circular test signal without a controller.
+Release builds use PyInstaller to produce the single-file Windows executable.
 
 ## CAD report format 1
 

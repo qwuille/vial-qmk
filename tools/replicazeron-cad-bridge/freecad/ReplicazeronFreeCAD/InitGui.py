@@ -43,3 +43,7 @@ class ReplicazeronWorkbench(Workbench):
 
 
 Gui.addWorkbench(ReplicazeronWorkbench())
+
+# FreeCAD imports InitGui.py while loading installed modules. Start navigation
+# here so users do not have to select the Replicazeron workbench each session.
+controller.start()
