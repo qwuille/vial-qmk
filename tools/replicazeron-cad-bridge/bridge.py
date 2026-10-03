@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+import re
 import socket
 import sys
 import threading
@@ -127,6 +128,65 @@ def process_is_running(pid: int) -> bool:
         kernel32.CloseHandle(handle)
 
 
+def is_vial_window(title: str, executable: str) -> bool:
+    executable_name = os.path.basename(executable).lower()
+    return executable_name in {"vial", "vial.exe"} or re.search(r"\bvial\b", title, re.IGNORECASE) is not None
+
+
+def vial_is_foreground() -> bool:
+    """Yield Raw HID while the Windows Vial application is in front."""
+    if sys.platform != "win32":
+        return False
+    try:
+        from ctypes import wintypes
+
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        user32.GetForegroundWindow.restype = wintypes.HWND
+        user32.GetWindowTextLengthW.argtypes = (wintypes.HWND,)
+        user32.GetWindowTextLengthW.restype = ctypes.c_int
+        user32.GetWindowTextW.argtypes = (wintypes.HWND, wintypes.LPWSTR, ctypes.c_int)
+        user32.GetWindowTextW.restype = ctypes.c_int
+        user32.GetWindowThreadProcessId.argtypes = (wintypes.HWND, ctypes.POINTER(wintypes.DWORD))
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.QueryFullProcessImageNameW.argtypes = (
+            wintypes.HANDLE,
+            wintypes.DWORD,
+            wintypes.LPWSTR,
+            ctypes.POINTER(wintypes.DWORD),
+        )
+        kernel32.QueryFullProcessImageNameW.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        window = user32.GetForegroundWindow()
+        if not window:
+            return False
+
+        title_length = user32.GetWindowTextLengthW(window)
+        title_buffer = ctypes.create_unicode_buffer(title_length + 1)
+        user32.GetWindowTextW(window, title_buffer, len(title_buffer))
+
+        process_id = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(window, ctypes.byref(process_id))
+        process = kernel32.OpenProcess(0x1000, False, process_id.value)  # PROCESS_QUERY_LIMITED_INFORMATION
+        executable = ""
+        if process:
+            try:
+                executable_buffer = ctypes.create_unicode_buffer(1024)
+                executable_length = wintypes.DWORD(len(executable_buffer))
+                if kernel32.QueryFullProcessImageNameW(
+                    process, 0, executable_buffer, ctypes.byref(executable_length)
+                ):
+                    executable = executable_buffer.value
+            finally:
+                kernel32.CloseHandle(process)
+        return is_vial_window(title_buffer.value, executable)
+    except (AttributeError, OSError, ValueError):
+        return False
+
+
 class ParentRegistry:
     def __init__(self, is_running=process_is_running) -> None:
         self._is_running = is_running
@@ -180,13 +240,13 @@ def receive_parent_registrations(control: socket.socket, parents: ParentRegistry
 
 
 def start_tray(stop_event: threading.Event):
-    """Create the Windows notification-area icon for the packaged bridge."""
-    if sys.platform != "win32":
+    """Create a notification-area icon when the desktop supports one."""
+    if sys.platform not in {"win32", "linux"}:
         return None
     try:
         import pystray  # type: ignore
         from PIL import Image, ImageDraw  # type: ignore
-    except ImportError:
+    except Exception:
         LOGGER.exception("System-tray dependencies are unavailable")
         return None
 
@@ -208,7 +268,11 @@ def start_tray(stop_event: threading.Event):
 
     menu = pystray.Menu(pystray.MenuItem("Exit Replicazeron CAD Bridge", stop_bridge))
     icon = pystray.Icon("ReplicazeronCadBridge", image, "Replicazeron CAD Bridge", menu)
-    icon.run_detached()
+    try:
+        icon.run_detached()
+    except Exception:
+        LOGGER.exception("The desktop does not provide a usable system tray")
+        return None
     return icon
 
 
@@ -359,7 +423,15 @@ def main() -> int:
     if args.parent_pid:
         parents.add(args.parent_pid)
     control = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    control.bind(("127.0.0.1", CONTROL_PORT))
+    try:
+        control.bind(("127.0.0.1", CONTROL_PORT))
+    except OSError:
+        control.close()
+        if args.parent_pid and notify_existing_instance(args.parent_pid):
+            LOGGER.info("Registered CAD host with the running bridge")
+        else:
+            LOGGER.info("Replicazeron CAD bridge control port is already in use")
+        return 0
     control.setblocking(False)
     tray = start_tray(stop_event)
     interval = 1.0 / args.rate
@@ -371,6 +443,9 @@ def main() -> int:
     connected = False
     last_error = ""
     next_tick = started
+    next_vial_check = started
+    vial_foreground = False
+    yielding_to_vial = False
 
     LOGGER.info("Replicazeron CAD bridge -> localhost ports %s", ", ".join(map(str, ports)))
     try:
@@ -379,6 +454,26 @@ def main() -> int:
             if parents.configured and not parents.any_running():
                 LOGGER.info("All registered CAD host processes have closed")
                 break
+            now = time.monotonic()
+            if now >= next_vial_check:
+                vial_foreground = vial_is_foreground()
+                next_vial_check = now + 0.2
+            if vial_foreground:
+                if not yielding_to_vial:
+                    LOGGER.info("Vial is foreground; releasing Raw HID")
+                    if connected:
+                        inactive = CadSample(1, sequence, False, 0.0, 0.0, 0.0, now)
+                        send_sample(sender, ports, inactive)
+                    device.close()
+                    connected = False
+                    yielding_to_vial = True
+                stop_event.wait(0.1)
+                next_tick = time.monotonic()
+                continue
+            if yielding_to_vial:
+                LOGGER.info("Vial left the foreground; resuming Raw HID")
+                yielding_to_vial = False
+                last_error = ""
             next_tick += interval
             try:
                 if args.demo:

@@ -63,6 +63,44 @@ jobs:
             tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-windows.zip
           if-no-files-found: error
 
+  package-cad-bridge-linux:
+    name: Package experimental Linux CAD bridge
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: tools/replicazeron-cad-bridge/requirements.txt
+
+      - name: Install bridge build dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r tools/replicazeron-cad-bridge/requirements.txt pyinstaller==6.22.3
+
+      - name: Build and test experimental executable
+        working-directory: tools/replicazeron-cad-bridge
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -v
+          pyinstaller --clean --noconfirm --onefile --name ReplicazeronCadBridge --hidden-import hid --hidden-import pystray._xorg bridge.py
+          ./dist/ReplicazeronCadBridge --self-test
+          ./package-linux.sh ./dist/ReplicazeronCadBridge ./release
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: replicazeron-cad-bridge-linux
+          path: |
+            tools/replicazeron-cad-bridge/release/ReplicazeronCadBridge-linux-x86_64
+            tools/replicazeron-cad-bridge/release/ReplicazeronFreeCAD-linux-x86_64.tar.gz
+          if-no-files-found: error
+
   check-uid:
     name: Check Vial UIDs
     runs-on: ubuntu-24.04

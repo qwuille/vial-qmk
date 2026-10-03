@@ -77,6 +77,13 @@ class DecodeReportTests(unittest.TestCase):
         self.assertFalse(parents.configured)
         self.assertFalse(parents.any_running())
 
+    def test_vial_window_detection_uses_title_or_executable(self):
+        self.assertTrue(BRIDGE.is_vial_window("Vial", ""))
+        self.assertTrue(BRIDGE.is_vial_window("Keyboard settings", "C:/Tools/Vial.exe"))
+        self.assertTrue(BRIDGE.is_vial_window("Replicazeron - Vial", "C:/Browser/chrome.exe"))
+        self.assertFalse(BRIDGE.is_vial_window("FreeCAD", "C:/Tools/FreeCAD.exe"))
+        self.assertFalse(BRIDGE.is_vial_window("Trivial notes", "C:/Tools/notes.exe"))
+
 
 if __name__ == "__main__":
     unittest.main()

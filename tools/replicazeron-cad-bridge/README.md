@@ -4,8 +4,9 @@ This bridge gives Fusion and FreeCAD direct analog camera rotation without
 moving the system pointer, holding mouse buttons, or sending keyboard keys.
 The normal mouse remains available for selection and editing.
 
-The bridge is a self-contained Windows executable that the packaged CAD add-ins
-start automatically:
+The bridge is distributed as a self-contained executable that the packaged CAD
+add-ins start automatically. Windows is the validated target; the Linux x86_64
+FreeCAD package is experimental and has not been hardware-tested:
 
 ```text
 Replicazeron Raw HID -> ReplicazeronCadBridge.exe -> Fusion add-in (UDP 28461)
@@ -33,6 +34,13 @@ bridge. The bridge stays available while either application is running and
 closes automatically after the last registered CAD application exits. The
 implementation still needs testing with a physical controller in both
 applications.
+
+Changing away from Settings L11 is a normal inactive state: the bridge remains
+available and resumes CAD reports when Settings and **CAD bridge** mode become
+active again. On Windows, bringing Vial to the foreground makes the bridge
+close its Raw HID handle so Vial has exclusive access to configuration replies.
+Moving away from Vial makes the bridge re-enumerate the controller and resume
+automatically.
 
 ## Firmware and WebHID
 
@@ -93,6 +101,20 @@ rotation speed, invert an axis, or disable automatic bridge startup.
 The add-on receives UDP on localhost port 28462 using a Qt timer and updates
 the active Coin camera while retaining the existing focal point.
 
+## Experimental Linux FreeCAD package
+
+Download `ReplicazeronFreeCAD-linux-x86_64.tar.gz`, extract the contained
+`ReplicazeronFreeCAD` directory into FreeCAD's user `Mod` directory, and restart
+FreeCAD. The package includes a self-contained `ReplicazeronCadBridge` binary;
+Python is not required. It starts and stops with FreeCAD in the same way as the
+Windows package.
+
+This build is supplied for testing and has not been validated with physical
+Replicazeron hardware. A tray icon is attempted when the Linux desktop exposes
+a compatible notification area; the bridge continues in the background when
+the desktop or Wayland session does not provide one. Fusion is not packaged for
+Linux because Autodesk does not provide a native Linux Fusion application.
+
 ## Development
 
 Running directly from source still requires Python and the HID dependency:
@@ -104,7 +126,8 @@ py -m venv .venv
 ```
 
 Use `bridge.py --demo` to send a circular test signal without a controller.
-Release builds use PyInstaller to produce the single-file Windows executable.
+Release builds use PyInstaller to produce single-file Windows and Linux x86_64
+executables.
 
 ## CAD report format 1
 
