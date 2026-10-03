@@ -28,8 +28,11 @@ report nor either add-on assigns any CAD action to it.
   assigned yet. Those controls can be designed after orbit is hardware-tested.
 
 Only one bridge process runs at a time, even when both CAD applications start
-their bundled copy. The implementation still needs testing with a physical
-controller in both applications.
+their bundled copy. Each add-in registers its CAD host process with the shared
+bridge. The bridge stays available while either application is running and
+closes automatically after the last registered CAD application exits. The
+implementation still needs testing with a physical controller in both
+applications.
 
 ## Firmware and WebHID
 
@@ -48,9 +51,11 @@ release:
 - `ReplicazeronFreeCAD-windows.zip`
 
 Each package contains `ReplicazeronCadBridge.exe`; Python and pip are not
-required. When the add-in starts, it launches the bridge in the background
-without a console window. A rotating diagnostic log is written to
-`%LOCALAPPDATA%\Replicazeron\cad-bridge.log`.
+required. When the add-in starts, it launches the bridge as a notification-area
+application without a console window. Use the **Replicazeron CAD Bridge** system
+tray icon to confirm it is running or exit it manually. It normally exits by
+itself when the last Fusion or FreeCAD process using it closes. A rotating
+diagnostic log is written to `%LOCALAPPDATA%\Replicazeron\cad-bridge.log`.
 
 Set `startBridgeAutomatically` to `false` in `settings.json` to disable this.
 For a custom shared executable location, set the `REPLICAZERON_CAD_BRIDGE`

@@ -41,5 +41,5 @@ class BridgeLauncherTests(unittest.TestCase):
                 self.assertTrue(started)
                 command = popen.call_args.args[0]
                 expected = launcher.os.path.join("C:/Replicazeron", launcher.EXECUTABLE_NAME)
-                self.assertEqual(command, [expected])
+                self.assertEqual(command, [expected, "--parent-pid", str(launcher.os.getpid())])
                 self.assertEqual(popen.call_args.kwargs["creationflags"], 0x08000008)

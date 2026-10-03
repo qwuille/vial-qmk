@@ -34,7 +34,7 @@ def ensure_bridge_started(addon_directory):
     creation_flags = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
     try:
         subprocess.Popen(
-            [executable],
+            [executable, "--parent-pid", str(os.getpid())],
             cwd=os.path.dirname(executable),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,

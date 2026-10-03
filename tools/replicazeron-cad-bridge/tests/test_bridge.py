@@ -58,6 +58,25 @@ class DecodeReportTests(unittest.TestCase):
         with mock.patch.object(BRIDGE.sys, "platform", "linux"):
             self.assertTrue(BRIDGE.acquire_single_instance())
 
+    def test_parent_registry_keeps_bridge_alive_until_last_host_closes(self):
+        running = {101, 202}
+        parents = BRIDGE.ParentRegistry(lambda pid: pid in running)
+        self.assertTrue(parents.add(101))
+        self.assertTrue(parents.add(202))
+        self.assertTrue(parents.configured)
+        self.assertTrue(parents.any_running())
+
+        running.remove(101)
+        self.assertTrue(parents.any_running())
+        running.remove(202)
+        self.assertFalse(parents.any_running())
+
+    def test_parent_registry_rejects_invalid_pid(self):
+        parents = BRIDGE.ParentRegistry(lambda _pid: True)
+        self.assertFalse(parents.add(0))
+        self.assertFalse(parents.configured)
+        self.assertFalse(parents.any_running())
+
 
 if __name__ == "__main__":
     unittest.main()

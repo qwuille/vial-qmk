@@ -50,7 +50,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
           python -m unittest discover -s tests -v
-          pyinstaller --clean --noconfirm --onefile --name ReplicazeronCadBridge --hidden-import hid bridge.py
+          pyinstaller --clean --noconfirm --onefile --windowed --name ReplicazeronCadBridge --hidden-import hid --hidden-import pystray._win32 bridge.py
           .\dist\ReplicazeronCadBridge.exe --self-test
           .\package-windows.ps1 -Executable .\dist\ReplicazeronCadBridge.exe -OutputDirectory .\release
 

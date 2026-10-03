@@ -11,6 +11,7 @@ import math
 import os
 import socket
 import sys
+import threading
 import time
 from dataclasses import asdict, dataclass
 from logging.handlers import RotatingFileHandler
@@ -24,8 +25,10 @@ PACKET_SIZE = 32
 COMMAND = 0x70
 CAD_STICK_GET = 0x1C
 DEFAULT_PORTS = (28461, 28462)
+CONTROL_PORT = 28460
 WINDOWS_MUTEX_NAME = "Local\\ReplicazeronCadBridge"
 WINDOWS_ERROR_ALREADY_EXISTS = 183
+WINDOWS_WAIT_TIMEOUT = 258
 LOGGER = logging.getLogger("replicazeron-cad-bridge")
 _mutex_handle: Any = None
 
@@ -93,6 +96,120 @@ def acquire_single_instance() -> bool:
         return False
     _mutex_handle = handle
     return True
+
+
+def process_is_running(pid: int) -> bool:
+    """Return whether a process still exists without retaining an OS handle."""
+    if pid <= 0:
+        return False
+    if sys.platform != "win32":
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+    kernel32.WaitForSingleObject.restype = wintypes.DWORD
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    handle = kernel32.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE
+    if not handle:
+        return False
+    try:
+        return kernel32.WaitForSingleObject(handle, 0) == WINDOWS_WAIT_TIMEOUT
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+class ParentRegistry:
+    def __init__(self, is_running=process_is_running) -> None:
+        self._is_running = is_running
+        self._pids: set[int] = set()
+        self.configured = False
+
+    def add(self, pid: int) -> bool:
+        if pid <= 0:
+            return False
+        self.configured = True
+        self._pids.add(pid)
+        return True
+
+    def any_running(self) -> bool:
+        self._pids = {pid for pid in self._pids if self._is_running(pid)}
+        return bool(self._pids)
+
+
+def notify_existing_instance(parent_pid: int, timeout: float = 2.0) -> bool:
+    """Register another CAD host with the already-running bridge."""
+    if parent_pid <= 0:
+        return False
+    payload = json.dumps({"parent_pid": parent_pid}).encode("utf-8")
+    deadline = time.monotonic() + timeout
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as control:
+        control.settimeout(0.2)
+        while time.monotonic() < deadline:
+            control.sendto(payload, ("127.0.0.1", CONTROL_PORT))
+            try:
+                reply, _source = control.recvfrom(32)
+                if reply == b"registered":
+                    return True
+            except socket.timeout:
+                pass
+    return False
+
+
+def receive_parent_registrations(control: socket.socket, parents: ParentRegistry) -> None:
+    while True:
+        try:
+            payload, source = control.recvfrom(256)
+        except BlockingIOError:
+            return
+        try:
+            parent_pid = int(json.loads(payload.decode("utf-8"))["parent_pid"])
+        except (KeyError, TypeError, ValueError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if parents.add(parent_pid):
+            control.sendto(b"registered", source)
+            LOGGER.info("Registered CAD host process %d", parent_pid)
+
+
+def start_tray(stop_event: threading.Event):
+    """Create the Windows notification-area icon for the packaged bridge."""
+    if sys.platform != "win32":
+        return None
+    try:
+        import pystray  # type: ignore
+        from PIL import Image, ImageDraw  # type: ignore
+    except ImportError:
+        LOGGER.exception("System-tray dependencies are unavailable")
+        return None
+
+    image = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    drawing = ImageDraw.Draw(image)
+    drawing.rounded_rectangle(
+        (5, 5, 59, 59),
+        radius=13,
+        fill=(20, 37, 40, 255),
+        outline=(88, 240, 178, 255),
+        width=4,
+    )
+    drawing.line((20, 45, 32, 17, 44, 45), fill=(88, 240, 178, 255), width=7, joint="curve")
+
+    def stop_bridge(icon, _item) -> None:
+        LOGGER.info("Stopping CAD bridge from the system tray")
+        stop_event.set()
+        icon.stop()
+
+    menu = pystray.Menu(pystray.MenuItem("Exit Replicazeron CAD Bridge", stop_bridge))
+    icon = pystray.Icon("ReplicazeronCadBridge", image, "Replicazeron CAD Bridge", menu)
+    icon.run_detached()
+    return icon
 
 
 def decode_report(report: bytes | bytearray | list[int], sequence: int, timestamp: float) -> CadSample:
@@ -196,6 +313,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ports", type=int, nargs="+", default=list(DEFAULT_PORTS), help="localhost UDP destination ports")
     parser.add_argument("--demo", action="store_true", help="send a circular test signal without a controller")
     parser.add_argument("--self-test", action="store_true", help="verify the packaged HID dependency and exit")
+    parser.add_argument("--parent-pid", type=int, help="exit after the launching CAD host closes")
     return parser.parse_args()
 
 
@@ -230,9 +348,20 @@ def main() -> int:
         return 2
 
     if not acquire_single_instance():
-        LOGGER.info("Replicazeron CAD bridge is already running")
+        if args.parent_pid and notify_existing_instance(args.parent_pid):
+            LOGGER.info("Registered CAD host with the running bridge")
+        else:
+            LOGGER.info("Replicazeron CAD bridge is already running")
         return 0
 
+    stop_event = threading.Event()
+    parents = ParentRegistry()
+    if args.parent_pid:
+        parents.add(args.parent_pid)
+    control = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    control.bind(("127.0.0.1", CONTROL_PORT))
+    control.setblocking(False)
+    tray = start_tray(stop_event)
     interval = 1.0 / args.rate
     timeout_ms = max(20, int(interval * 1000 * 2))
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -245,7 +374,11 @@ def main() -> int:
 
     LOGGER.info("Replicazeron CAD bridge -> localhost ports %s", ", ".join(map(str, ports)))
     try:
-        while True:
+        while not stop_event.is_set():
+            receive_parent_registrations(control, parents)
+            if parents.configured and not parents.any_running():
+                LOGGER.info("All registered CAD host processes have closed")
+                break
             next_tick += interval
             try:
                 if args.demo:
@@ -269,12 +402,12 @@ def main() -> int:
                     send_sample(sender, ports, inactive)
                 connected = False
                 device.close()
-                time.sleep(1.0)
+                stop_event.wait(1.0)
                 next_tick = time.monotonic()
 
             delay = next_tick - time.monotonic()
             if delay > 0:
-                time.sleep(delay)
+                stop_event.wait(delay)
             elif delay < -interval:
                 next_tick = time.monotonic()
     except KeyboardInterrupt:
@@ -282,6 +415,9 @@ def main() -> int:
     finally:
         device.close()
         sender.close()
+        control.close()
+        if tray is not None:
+            tray.stop()
     return 0
 
 

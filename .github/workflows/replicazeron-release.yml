@@ -86,7 +86,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          pyinstaller --clean --noconfirm --onefile --name ReplicazeronCadBridge --hidden-import hid bridge.py
+          pyinstaller --clean --noconfirm --onefile --windowed --name ReplicazeronCadBridge --hidden-import hid --hidden-import pystray._win32 bridge.py
           .\dist\ReplicazeronCadBridge.exe --self-test
           .\package-windows.ps1 -Executable .\dist\ReplicazeronCadBridge.exe -OutputDirectory .\release
 
@@ -126,7 +126,7 @@ jobs:
           if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --title "Replicazeron $RELEASE_TAG" \
-              --notes "The STM32 Standard build is recommended. The Windows CAD add-in packages include a self-contained bridge that Fusion or FreeCAD starts automatically; Python is not required."
+              --notes "The STM32 Standard build is recommended. The Windows CAD add-in packages include a self-contained system-tray bridge that Fusion or FreeCAD starts automatically and closes after the CAD applications exit; Python is not required."
           fi
           gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
             --clobber release/*
