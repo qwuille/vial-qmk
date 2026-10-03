@@ -72,9 +72,10 @@ jobs:
 
       - name: Test bridge
         shell: pwsh
+        working-directory: tools/replicazeron-cad-bridge
         run: |
-          python -m compileall -q tools/replicazeron-cad-bridge
-          python -m unittest discover -s tools/replicazeron-cad-bridge/tests -v
+          python -m compileall -q .
+          python -m unittest discover -s tests -v
 
       - name: Build self-contained executable
         shell: pwsh
